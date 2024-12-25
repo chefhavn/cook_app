@@ -1,28 +1,37 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Button } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import { Card, Paragraph, Badge } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
+import { useFocusEffect } from '@react-navigation/native';
 import { fetchChefOrders, cancelOrder } from '../services/api';
 import moment from 'moment-timezone';
+import Colors from '../utils/Colors'; // Import Colors utility
 
 const MyOrdersScreen = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chefId, setChefId] = useState(null);
 
-  // Fetch orders when screen is focused
   useFocusEffect(
     useCallback(() => {
       const fetchOrders = async () => {
         setLoading(true);
         try {
           const userData = await AsyncStorage.getItem('user');
+          console.log(userData)
           if (userData) {
             const parsedUser = JSON.parse(userData);
             setChefId(parsedUser.id);
-
             const data = await fetchChefOrders(parsedUser.id);
+            console.log("Fetch Order data", data)
             if (data.success) {
               setOrders(data.bookings);
             } else {
@@ -30,7 +39,6 @@ const MyOrdersScreen = () => {
             }
           }
         } catch (error) {
-          console.error('Error fetching orders:', error);
           Alert.alert('Error', 'Unable to fetch orders');
         } finally {
           setLoading(false);
@@ -38,14 +46,13 @@ const MyOrdersScreen = () => {
       };
 
       fetchOrders();
-    }, []) // Dependency array is empty so this runs only when the screen gains focus
+    }, [])
   );
 
   const handleCancelOrder = async (bookingId) => {
     try {
       const response = await cancelOrder(bookingId);
       if (response.success) {
-        // Update the local orders state after canceling the order
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
             order._id === bookingId ? { ...order, status: 'Cancelled' } : order
@@ -63,15 +70,71 @@ const MyOrdersScreen = () => {
 
   const isBookingConfirmed = (orderDate) => {
     const currentTime = moment();
-    const bookingTime = moment.utc(orderDate).local(); // Convert from UTC to local time
+    const bookingTime = moment.utc(orderDate).local();
     const timeDifference = bookingTime.diff(currentTime, 'hours');
     return timeDifference <= 3;
   };
 
+  const OrderCard = ({ order }) => (
+    <Card style={styles.card}>
+      <View style={styles.cardContent}>
+
+        <View style={styles.eventDate}>
+          <Text style={styles.value}>{order.event_type}</Text>
+          <Text style={styles.value}>
+            {moment.utc(order.date).local().format('MMM D, YYYY')}
+          </Text>
+        </View>
+
+
+
+        <View style={styles.numberPrice}>
+          <Text style={styles.bookingNumber}>
+            {order.booking_number}
+          </Text>
+          
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceSymbol}>₹</Text>
+            <Text style={styles.price}>{order.price}</Text>
+          
+          </View>
+
+        </View>
+
+
+        <Text>
+            {order.status}
+          </Text>
+
+
+      </View>
+
+      {
+        isBookingConfirmed(order.date) && order.status !== 'Cancelled' || order.status !== 'Ongoing' ? (
+          <View style={styles.statusContainer}>
+            <Text style={styles.confirmedStatus}>Confirmed Order</Text>
+          </View>
+        ) : order.status === 'Cancelled' ? (
+          <View style={styles.statusContainer}>
+            <Text style={styles.cancelledStatus}>Order Cancelled</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => handleCancelOrder(order._id)}
+          >
+            <Text style={styles.cancelButtonText}>Cancel Order</Text>
+          </TouchableOpacity>
+        )
+      }
+
+    </Card >
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4688F1" />
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
       </View>
     );
   }
@@ -80,24 +143,10 @@ const MyOrdersScreen = () => {
     <ScrollView style={styles.container}>
       {orders.length > 0 ? (
         orders.map((order) => (
-          <Card key={order._id} style={styles.card}>
-            <Card.Title title={`Order No: ${order.booking_number}`} />
-            <Card.Content>
-              <Paragraph>Event Type: {order.event_type}</Paragraph>
-              <Paragraph>Date: {moment.utc(order.date).local().format('DD/MM/YYYY HH:mm')}</Paragraph>
-              <Paragraph>Price: ₹{order.price}</Paragraph>
-              {isBookingConfirmed(order.date) && order.status !== 'Cancelled' ? (
-                <Badge style={styles.confirmedBadge}>Confirmed Order</Badge>
-              ) : order.status === 'Cancelled' ? (
-                <Text style={styles.cancelledText}>Order Cancelled</Text>
-              ) : (
-                <Button title="Cancel Order" onPress={() => handleCancelOrder(order._id)} />
-              )}
-            </Card.Content>
-          </Card>
+          <OrderCard key={order._id} order={order} />
         ))
       ) : (
-        <Text>No orders found.</Text>
+        <Text style={styles.noOrdersText}>No orders found.</Text>
       )}
     </ScrollView>
   );
@@ -106,25 +155,100 @@ const MyOrdersScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
   card: {
-    marginVertical: 10,
+    marginVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  confirmedBadge: {
-    marginTop: 10,
-    backgroundColor: 'green',
-    color: 'white',
-    padding: 5,
+  cardContent: {
+    padding: 16,
+
   },
-  cancelledText: {
-    color: 'red',
-    marginTop: 10,
+
+  value: {
+    fontSize: 16,
+    fontWeight: '500'
+
+  },
+
+  eventDate: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10
+  },
+
+  bookingNumber: {
+    color: 'gray',
+    fontSize: 16,
+  },
+
+  priceContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+  },
+
+  numberPrice: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+
+  priceSymbol: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: Colors.PRIMARY
+  },
+
+  price: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: Colors.PRIMARY
+  },
+
+  statusContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    padding: 12,
+    alignItems: 'center',
+  },
+  confirmedStatus: {
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  cancelledStatus: {
+    color: '#F44336',
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: Colors.PRIMARY,
+    padding: 12,
+    alignItems: 'center',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  noOrdersText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 24,
   },
 });
 

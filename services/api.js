@@ -24,6 +24,22 @@ export const register = async ({name, email, password, phone, role}) => {
   }
 };
 
+// API method for sending OTP
+export const sendOtp = async (email, phoneNumber, loginWithEmail) => {
+  const payload = {
+    email: loginWithEmail ? email : null,
+    phone: !loginWithEmail ? phoneNumber : null,
+  };
+  try {
+    const response = await axiosInstance.post('/api/send-otp', payload);
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    throw error;
+  }
+};
+
 // API method for checking KYC status
 export const checkKYCStatus = async userId => {
   try {
@@ -81,9 +97,12 @@ export const approveBooking = async (chefId, bookingId) => {
 
 export const fetchChefOrders = async chef_id => {
   try {
+    console.log("Api Called")
     const response = await axiosInstance.get(
       `/api/booking/chef-orders/${chef_id}`,
     );
+    console.log("Api Called End")
+    console.log("Response from fetch orders", response)
     return response;
   } catch (error) {
     console.error('Error fetching chef orders:', error);
@@ -96,6 +115,7 @@ export const cancelOrder = async bookingId => {
     const response = await axiosInstance.post('/api/booking/cancel-booking', {
       booking_id: bookingId,
     });
+    
     return response;
   } catch (error) {
     console.error('Error cancelling order:', error);
@@ -114,3 +134,59 @@ export const rejectBooking = async (bookingId) => {
     return { success: false, message: 'Error rejecting booking' };
   }
 };
+
+export const fetchLatestAcceptedOrder = async chef_id => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/booking/latest-accepted-order/${chef_id}`,
+    );
+
+    console.log(response)
+    return response;
+  } catch (error) {
+    console.error('Error fetching latest accepted order:', error);
+    throw error;
+  }
+};
+
+// Submit KYC Mail Sent
+export const sentKycSubmitMail = async (email, name) => {
+  try {
+    // Make the API request
+    const response = await axiosInstance.post('/api/submit-kyc', { email, name });
+    // Log and return the response
+    console.log('KYC submitted successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    // Log and throw the error
+    console.error('Error submitting KYC:', error);
+    throw error;
+  }
+};
+
+// Start Booking API Call
+export const startBooking = async (bookingId) => {
+  try {
+    console.log("Starting booking with ID:", bookingId);
+
+    const response = await axiosInstance.post(`/api/booking/start-booking/${bookingId}`);
+    return response;
+  } catch (error) {
+    console.error("Error starting booking:", error);
+    throw error;
+  }
+};
+
+export const endBooking = async (bookingId, timeToPrepare) => {
+  try {
+    const response = await axiosInstance.post('/api/booking/end-booking', {
+      booking_id: bookingId,
+      time_to_prepare: timeToPrepare,
+    });
+    return response;
+  } catch (error) {
+    console.error("Error ending booking:", error);
+    throw error;
+  }
+};
+

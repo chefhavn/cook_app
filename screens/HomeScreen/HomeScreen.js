@@ -5,104 +5,89 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
-  Button,
   ActivityIndicator,
-  StyleSheet
+  StyleSheet,
 } from 'react-native';
-import { CommonActions } from '@react-navigation/native';
 import { Card, Paragraph } from 'react-native-paper';
-import { Avatar } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
+import { useFocusEffect } from '@react-navigation/native';
 import KYCComponent from '../../component/KYCComponent/KYCComponent';
-import { fetchBookings, approveBooking, rejectBooking } from '../../services/api';
+import { fetchBookings, approveBooking, rejectBooking, fetchLatestAcceptedOrder } from '../../services/api';
+import Colors from '../../utils/Colors';
+import RecentOrders from '../../component/Home/RecentOrders';
 
-export default function HomeScreen({ navigation, setAcceptedOrders }) {
+export default function HomeScreen({ navigation }) {
+
+  
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [acceptedBookings, setAcceptedBookings] = useState([]);
   const [userData, setUserData] = useState(null);
   const [kycStatus, setKycStatus] = useState(null);
+  const [latestOrder, setLatestOrder] = useState(null);
 
-  // Fetch user data and bookings every time the screen gains focus
+  useEffect(() => {
+    navigation.setOptions({
+      headerStyle: {
+        backgroundColor: Colors.SECONDARY,
+      },
+      headerTitleStyle: {
+        color: '#fff',
+      },
+    });
+  }, [navigation]);
+
   useFocusEffect(
     useCallback(() => {
-      const fetchUserData = async () => {
+      const fetchData = async () => {
+        setLoading(true); // Show indicator
         try {
+          // Fetch user data
           const storedUserData = await AsyncStorage.getItem('user');
-          console.log(storedUserData);
           if (storedUserData) {
             const parsedUserData = JSON.parse(storedUserData);
+            console.log(parsedUserData)
             setUserData(parsedUserData);
             setKycStatus(parsedUserData.kyc_status);
+  
+            // Fetch latest accepted order for the chef
+            const chefId = parsedUserData.id;
+            const orderData = await fetchLatestAcceptedOrder(chefId);
+            console.log("Order latest", orderData)
+            if (orderData.success && orderData.order) {
+              setLatestOrder(orderData.order);
+            } else {
+              console.log(orderData.message);
+              setLatestOrder(null);
+            }
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
-      };
-
-      const loadBookings = async () => {
-        setLoading(true); // Show loading spinner while fetching
-        try {
-          // Fetch all bookings from the server
+  
+          // Fetch bookings
           const data = await fetchBookings();
           if (data.success) {
-            // Get rejected booking IDs from AsyncStorage
             const rejectedIds = JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
-      
-            // Filter out the rejected bookings
             const filteredBookings = data.bookings.filter(
               (booking) => !rejectedIds.includes(booking._id)
             );
-      
-            // Update the state with non-rejected bookings
             setBookings(filteredBookings);
+          } else {
+            console.error('Error fetching bookings:', data.message);
           }
         } catch (error) {
-          console.error('Error fetching bookings:', error);
+          console.error('Error fetching data:', error);
         } finally {
-          setLoading(false); // Hide loading spinner after fetching
+          setLoading(false); // Hide indicator
         }
       };
-      
-
-      fetchUserData();
-      loadBookings();
-    }, []) // Empty dependency array ensures this runs every time the screen is focused
-  );
-
-  // Handle user logout
-  const handleLogout = async () => {
-    try {
-      const user = await AsyncStorage.getItem('user');
-      if (user) {
-        await AsyncStorage.removeItem('user');
-        Alert.alert('Logged out', 'You have been logged out.');
   
-        // Reset navigation stack to Login
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          })
-        );
-      } else {
-        Alert.alert('No User Found', 'You are not logged in.');
-      }
-    } catch (error) {
-      console.error('Error logging out:', error);
-      Alert.alert('Error', 'An error occurred while logging out.');
-    }
-  };
+      fetchData();
+    }, [])
+  );
+  
 
-  // Handle booking acceptance with backend API call
   const handleAccept = async (id) => {
     try {
       const result = await approveBooking(userData.id, id);
       if (result.success) {
-        const acceptedBooking = bookings.find((booking) => booking._id === id);
-        setAcceptedBookings((prev) => [...prev, acceptedBooking]);
-        setBookings((prev) => prev.filter((booking) => booking._id !== id));
         Alert.alert('Booking Accepted', `Booking ID: ${id} has been accepted.`);
       } else {
         Alert.alert('Error', result.message || 'Failed to approve booking.');
@@ -113,17 +98,13 @@ export default function HomeScreen({ navigation, setAcceptedOrders }) {
     }
   };
 
-  // Handle booking rejection with backend API call
   const handleReject = async (id) => {
     try {
       const result = await rejectBooking(id);
       if (result) {
-        // Store the rejected ID in AsyncStorage
         const rejectedIds = JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
         rejectedIds.push(id);
         await AsyncStorage.setItem('rejectedBookings', JSON.stringify(rejectedIds));
-  
-        // Update the state to remove the booking from the list
         setBookings((prev) => prev.filter((booking) => booking._id !== id));
         Alert.alert('Booking Rejected', `Rejected booking ID: ${id}`);
       } else {
@@ -138,82 +119,46 @@ export default function HomeScreen({ navigation, setAcceptedOrders }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4688F1" />
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Logout button */}
-      <View style={styles.logoutContainer}>
-        <TouchableOpacity onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView contentContainerStyle={styles.content}>
 
-      <ScrollView style={styles.content}>
-        {/* Profile Header Section */}
-        <View style={styles.profileContainer}>
-          <View style={styles.profileInfo}>
-            <Avatar
-              rounded
-              size="large"
-              source={{
-                uri:
-                  userData?.profilePicUrl || 'https://example.com/profile-pic.jpg',
-              }}
-            />
-            <View style={styles.profileText}>
-              <Text style={styles.profileName}>
-                {userData ? userData.name : 'John Doe'}
-              </Text>
-              <Text style={styles.profileRating}>⭐ {userData?.rating || '4.8'}</Text>
-            </View>
-          </View>
-          <View style={styles.earningsCard}>
-            <Text style={styles.earningsTitle}>Earned Today</Text>
-            <Text style={styles.earningsValue}>${userData?.earnings || '259.90'}</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userData?.totalTrips || 15}</Text>
-                <Text style={styles.statLabel}>Total Trips</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userData?.timeOnline || '15h 30m'}</Text>
-                <Text style={styles.statLabel}>Time Online</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userData?.totalDistance || '45 km'}</Text>
-                <Text style={styles.statLabel}>Total Distance</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+      {kycStatus !== 'Pending' &&
+        <RecentOrders navigation={navigation} latestOrder={latestOrder} />
+      }
+
 
         {kycStatus === 'Pending' ? (
           <KYCComponent navigation={navigation} />
         ) : bookings.length > 0 ? (
           bookings.map((booking) => (
             <Card key={booking._id} style={styles.card}>
-              <Card.Title title={`Booking No: ${booking.booking_number}`} />
+              <Card.Title title={`Booking No: ${booking.booking_number}`} titleStyle={styles.title} />
               <Card.Content>
-                <Paragraph>Event Type: {booking.event_type}</Paragraph>
-                <Paragraph>Date: {new Date(booking.date).toLocaleDateString()}</Paragraph>
-                <Paragraph>Price: ₹{booking.price}</Paragraph>
+                <Paragraph style={styles.boldText}>Event Type:</Paragraph>
+                <Paragraph>{booking.event_type}</Paragraph>
+                <Paragraph style={styles.boldText}>Date:</Paragraph>
+                <Paragraph>{new Date(booking.date).toLocaleDateString()}</Paragraph>
+                <Paragraph style={styles.boldText}>Price:</Paragraph>
+                <Paragraph>₹{booking.price}</Paragraph>
               </Card.Content>
-              <Card.Actions>
+              <Card.Actions style={styles.actions}>
                 <TouchableOpacity onPress={() => handleAccept(booking._id)} style={styles.acceptButton}>
-                  <Text style={styles.buttonText}>Accept</Text>
+                  <Text style={styles.acceptButtonText}>Accept</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleReject(booking._id)} style={styles.rejectButton}>
-                  <Text style={styles.buttonText}>Reject</Text>
+                  <Text style={styles.rejectButtonText}>Reject</Text>
                 </TouchableOpacity>
               </Card.Actions>
             </Card>
           ))
         ) : (
-          <Text>No bookings available.</Text>
+          <Text style={styles.noBookingsText}>No bookings available.</Text>
         )}
       </ScrollView>
     </View>
@@ -223,98 +168,67 @@ export default function HomeScreen({ navigation, setAcceptedOrders }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF',
   },
   content: {
-    paddingHorizontal: 16,
     paddingVertical: 20,
+    paddingHorizontal: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoutContainer: {
-    alignItems: 'flex-end',
-    padding: 10,
-    backgroundColor: '#fff',
-  },
-  logoutText: {
-    fontSize: 16,
-    color: '#FF3D00',
-    fontWeight: 'bold',
-  },
-  profileContainer: {
-    backgroundColor: '#4688F1',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 20,
-  },
-  profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileText: {
-    marginLeft: 15,
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  profileRating: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  earningsCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    marginTop: 20,
-  },
-  earningsTitle: {
-    fontSize: 16,
-    color: '#888',
-    marginBottom: 5,
-  },
-  earningsValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#000',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#888',
-  },
   card: {
-    marginBottom: 10,
+    backgroundColor: '#fff',
+    marginBottom: 16,
+    borderRadius: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  title: {
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  boldText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  actions: {
+    justifyContent: 'flex-end',
+    marginBottom: 8,
+    marginRight: 8,
   },
   acceptButton: {
-    backgroundColor: 'green',
-    padding: 10,
-    borderRadius: 5,
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     marginRight: 10,
   },
-  rejectButton: {
-    backgroundColor: 'red',
-    padding: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: 'white',
+  acceptButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  rejectButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.PRIMARY,
+  },
+  rejectButtonText: {
+    color: Colors.PRIMARY,
+    fontWeight: 'bold',
+  },
+  noBookingsText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#555',
   },
 });
