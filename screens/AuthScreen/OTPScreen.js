@@ -31,7 +31,9 @@ const OTPScreen = ({ route, navigation }) => {
   useEffect(() => {
     const fetchOtp = async () => {
       try {
-        // const response = await sendOtp(email, phoneNumber, loginWithEmail);
+        const response = await sendOtp(email, phoneNumber, loginWithEmail);
+        console.log("Response",response)
+        // setSentOtp(response.otp);
         setSentOtp(1234);
 
         setTimeout(() => {

@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '../../utils/Colors';
 import { startBooking, endBooking } from '../../services/api';
 
-export default function OrderDetails({ route }) {
+export default function OrderDetails({ route, navigation }) {
   const { order } = route.params;
   const booking = order?.booking_id;
   const [orderEndAmount, setOrderEndAmount] = useState(1599)
@@ -38,6 +38,9 @@ else{
     console.log("aMOUNT DUE", amount_due);
     console.log("3RD IF ELSE")
     setAmountDue(amount_due)
+
+    navigation.navigate('PendingAmount', { amountDue: amount_due });
+
 }
 }
  

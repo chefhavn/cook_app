@@ -12,56 +12,58 @@ const LoginScreen = ({ navigation }) => {
   const [isChecked, setIsChecked] = useState(false);
 
   const handleLogin = async () => {
-    navigation.navigate('OTP', { email: '', phoneNumber: phone, loginWith2Email: false });
+    
     // Check if the phone input field is empty
-    // if (!phone.trim()) {
-    //   Alert.alert('Error', 'Phone number cannot be empty'); // Show an error message
-    //   return; // Stop further execution
-    // }
+    if (!phone.trim()) {
+      Alert.alert('Error', 'Phone number cannot be empty'); // Show an error message
+      return; // Stop further execution
+    }
 
-    // if(phone.trim().length != 10){
-    //   Alert.alert('Number', 'Please Enter Correct Number');
-    //   return;
-    // }
+    if(phone.trim().length != 10){
+      Alert.alert('Number', 'Please Enter Correct Number');
+      return;
+    }
     
 
-    // if(!isChecked){
-    //   Alert.alert('Error', "You've not agree the terms and condition"); // Show an error message
-    //   return;
-    // }
+    if(!isChecked){
+      Alert.alert('Error', "You've not agree the terms and condition"); // Show an error message
+      return;
+    }
 
-    // try {
-    //   const response = await login(phone);
-    //   console.log("Phone Number", phone)
-    //   // Check if login is successful (modify based on API response structure)
-    //   if (response.success) {
-    //     console.log('Login successful:', response.user);
+    try {
+      const response = await login(phone);
+      console.log("Phone Number", phone)
+      // Check if login is successful (modify based on API response structure)
+      if (response.success) {
+        console.log('Login successful:', response.user);
 
-    //     // Store login details (e.g., token, user info) in AsyncStorage
-    //     await AsyncStorage.setItem('user', JSON.stringify(response.user));
+        // Store login details (e.g., token, user info) in AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
-    //     // Check if user data is successfully stored
-    //     const storedUser = await AsyncStorage.getItem('user');
-    //     if (storedUser) {
-    //       console.log('User data stored successfully:', storedUser);
+        // Check if user data is successfully stored
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          console.log('User data stored successfully:', storedUser);
 
-    //       // Alert.alert('Success', 'Login successful');
-    //       setIsLoading(false);
+          // Alert.alert('Success', 'Login successful');
+          setIsLoading(false);
 
-    //       // Navigate to Home Screen
-    //       navigation.navigate('HomeTabs');
-    //     } else {
-    //       throw new Error('Failed to store user data.');
-    //     }
-    //   } else {
-    //     //   Alert.alert('Error', response.message || 'Login failed');
-    //     setIsLoading(false);
-    //   }
-    // } catch (error) {
-    //   console.error('Login error:', error);
-    //   // Alert.alert('Error', error.message || 'Login failed');
-    //   setIsLoading(false);
-    // }
+          // Navigate to Home Screen
+          navigation.navigate('HomeTabs');
+        } else {
+          throw new Error('Failed to store user data.');
+        }
+      } else {
+        //   Alert.alert('Error', response.message || 'Login failed');
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      // Alert.alert('Error', error.message || 'Login failed');
+      setIsLoading(false);
+    }
+
+    navigation.navigate('OTP', { email: '', phoneNumber: phone, loginWith2Email: false });
 
   };
 

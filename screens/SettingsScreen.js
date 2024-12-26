@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,12 @@ import {
   ScrollView,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import Colors from '../utils/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { Avatar } from 'react-native-elements';
-import { Card, Paragraph } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
-
-
-
 
 // Imported Screens
 import EditProfileScreen from './EditProfileScreen/EditProfileScreen';
@@ -28,61 +24,54 @@ import TermsScreen from './TermsAndConditions/TermsScreen';
 import PrivacyPolicyScreen from './PrivacyPolicy/PrivacyPolicyScreen';
 
 const SettingsScreen = ({ navigation }) => {
-
   const [userData, setUserData] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // List of screens with corresponding names and targets
   const screens = [
     { name: 'Edit Profile', screen: 'EditProfileScreen', icon: require('../assets/images/edit_profile_icon.png') },
-    { name: 'About', screen: 'About', icon: require('../assets/images/about_icon.png') },
-    { name: 'My Earnings', screen: 'MyEarnings', icon: require('../assets/images/rupee_icon.png') },
-    { name: 'Location Settings', screen: 'LocationSettings', icon: require('../assets/images/setting_icon.png') },
-    { name: 'Help', screen: 'Help', icon: require('../assets/images/help_icon.png') },
-    { name: 'Terms & Conditions', screen: 'Terms', icon: require('../assets/images/t&c_icon.png') },
-    { name: 'Privacy Policy', screen: 'PrivacyPolicy', icon: require('../assets/images/privacy&policy_icon.png') },
+    { name: 'About', screen: 'AboutScreen', icon: require('../assets/images/about_icon.png') },
+    { name: 'My Earnings', screen: 'MyEarningsScreen', icon: require('../assets/images/rupee_icon.png') },
+    { name: 'Location Settings', screen: 'LocationSettingsScreen', icon: require('../assets/images/setting_icon.png') },
+    { name: 'Help', screen: 'HelpScreen', icon: require('../assets/images/help_icon.png') },
+    { name: 'Terms & Conditions', screen: 'TermsScreen', icon: require('../assets/images/t&c_icon.png') },
+    { name: 'Privacy Policy', screen: 'PrivacyPolicyScreen', icon: require('../assets/images/privacy&policy_icon.png') },
   ];
 
-  const rightArrowIcon = require('../assets/images/right_angle_icon.png'); // Right-angle arrow image
-  const logoutIcon = require('../assets/images/logout_icon.png'); // Logout icon
+  const rightArrowIcon = require('../assets/images/right_angle_icon.png');
+  const logoutIcon = require('../assets/images/logout_icon.png');
 
   useFocusEffect(
     useCallback(() => {
       const fetchUserData = async () => {
         try {
           const storedUserData = await AsyncStorage.getItem('user');
-          console.log(storedUserData);
           if (storedUserData) {
-            const parsedUserData = JSON.parse(storedUserData);
-            setUserData(parsedUserData);
+            setUserData(JSON.parse(storedUserData));
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
-      }
-
+      };
       fetchUserData();
-}))
-    
+    }, [])
+  );
 
-  // Handle user logout
   const handleLogout = async () => {
+    setModalVisible(false);
     try {
       const user = await AsyncStorage.getItem('user');
-      console.log(user)
       if (user) {
-         await AsyncStorage.clear();
+        // TODO 
+        // Delete Only User
+        await AsyncStorage.clear();
         Alert.alert('Logged out', 'You have been logged out.');
-
-        // Reset navigation stack to Login
-        // navigation.dispatch(
-        //   CommonActions.reset({
-        //     index: 0,
-        //     routes: [{ name: 'Login' }],
-        //   })
-        // );
-        console.log("User",user)
-        navigation.navigate('Login');
-
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          })
+        );
       } else {
         Alert.alert('No User Found', 'You are not logged in.');
       }
@@ -102,8 +91,7 @@ const SettingsScreen = ({ navigation }) => {
               rounded
               size="large"
               source={{
-                uri:
-                  userData?.profilePicUrl || 'https://example.com/profile-pic.jpg',
+                uri: userData?.profilePicUrl || 'https://example.com/profile-pic.jpg',
               }}
             />
             <View style={styles.profileText}>
@@ -133,29 +121,47 @@ const SettingsScreen = ({ navigation }) => {
           </View>
         </View>
         {screens.map((item, index) => (
-        <TouchableOpacity
-          key={index}
-          style={styles.itemContainer}
-          onPress={() => navigation.navigate(item.screen)}
-        >
-          {/* Left Icon */}
-          <Image source={item.icon} style={styles.iconStyle} />
-
-          {/* Text */}
-          <Text style={styles.itemText}>{item.name}</Text>
-
-          {/* Right Arrow */}
-          <Image source={rightArrowIcon} style={styles.arrowStyle} />
-        </TouchableOpacity>
-      ))}
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={styles.itemContainer}
-        >
-          <Image source={logoutIcon} style={styles.iconStyle}/>
+          <TouchableOpacity
+            key={index}
+            style={styles.itemContainer}
+            onPress={() => navigation.navigate(item.screen)}
+          >
+            <Image source={item.icon} style={styles.iconStyle} />
+            <Text style={styles.itemText}>{item.name}</Text>
+            <Image source={rightArrowIcon} style={styles.arrowStyle} />
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.itemContainer}>
+          <Image source={logoutIcon} style={styles.iconStyle} />
           <Text style={styles.itemText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Confirmation Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirm Logout</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to log out?
+            </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={[styles.modalButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.PRIMARY }]}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={[styles.modalButton, { backgroundColor: Colors.PRIMARY }]}
+              >
+                <Text style={styles.logoutButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -165,13 +171,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 10,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.Primary,
-    textAlign: 'center',
-    marginVertical: 20,
   },
   profileContainer: {
     backgroundColor: Colors.PRIMARY,
@@ -209,8 +208,8 @@ const styles = StyleSheet.create({
   earningsValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 10,
     color: '#000',
+    marginBottom: 10,
   },
   statsRow: {
     flexDirection: 'row',
@@ -229,31 +228,73 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   itemContainer: {
-    flexDirection: 'row', // Arrange items in a row
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Space between left and right icons/text
+    justifyContent: 'space-between',
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 10,
     marginBottom: 10,
-    elevation: 3, // For shadow effect on Android
     backgroundColor: '#fff',
   },
   iconStyle: {
     width: 24,
     height: 24,
-    marginRight: 10, // Space between icon and text
+    marginRight: 10,
   },
   itemText: {
-    flex: 1, // Take up remaining space
-    color: 'black',
+    flex: 1,
     fontSize: 18,
     fontWeight: '500',
+    color: '#000',
   },
   arrowStyle: {
     width: 16,
     height: 16,
-    tintColor: 'gray', // Optional: Tint color for the arrow
+    tintColor: 'gray',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginHorizontal: 5,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: Colors.PRIMARY,
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    color: '#fff',
   },
 });
 

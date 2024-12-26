@@ -36,49 +36,50 @@ export default function HomeScreen({ navigation }) {
     });
   }, [navigation]);
 
+  const fetchData = async () => {
+    setLoading(true); // Show indicator
+    try {
+      // Fetch user data
+      const storedUserData = await AsyncStorage.getItem('user');
+      if (storedUserData) {
+        const parsedUserData = JSON.parse(storedUserData);
+        console.log(parsedUserData)
+        setUserData(parsedUserData);
+        setKycStatus(parsedUserData.kyc_status);
+
+        // Fetch latest accepted order for the chef
+        const chefId = parsedUserData.id;
+        const orderData = await fetchLatestAcceptedOrder(chefId);
+        console.log("Order latest", orderData)
+        if (orderData.success && orderData.order) {
+          setLatestOrder(orderData.order);
+        } else {
+          console.log(orderData.message);
+          setLatestOrder(null);
+        }
+      }
+
+      // Fetch bookings
+      const data = await fetchBookings();
+      if (data.success) {
+        const rejectedIds = JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
+        const filteredBookings = data.bookings.filter(
+          (booking) => !rejectedIds.includes(booking._id)
+        );
+        setBookings(filteredBookings);
+      } else {
+        console.error('Error fetching bookings:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false); // Hide indicator
+    }
+  };
+
+
   useFocusEffect(
     useCallback(() => {
-      const fetchData = async () => {
-        setLoading(true); // Show indicator
-        try {
-          // Fetch user data
-          const storedUserData = await AsyncStorage.getItem('user');
-          if (storedUserData) {
-            const parsedUserData = JSON.parse(storedUserData);
-            console.log(parsedUserData)
-            setUserData(parsedUserData);
-            setKycStatus(parsedUserData.kyc_status);
-  
-            // Fetch latest accepted order for the chef
-            const chefId = parsedUserData.id;
-            const orderData = await fetchLatestAcceptedOrder(chefId);
-            console.log("Order latest", orderData)
-            if (orderData.success && orderData.order) {
-              setLatestOrder(orderData.order);
-            } else {
-              console.log(orderData.message);
-              setLatestOrder(null);
-            }
-          }
-  
-          // Fetch bookings
-          const data = await fetchBookings();
-          if (data.success) {
-            const rejectedIds = JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
-            const filteredBookings = data.bookings.filter(
-              (booking) => !rejectedIds.includes(booking._id)
-            );
-            setBookings(filteredBookings);
-          } else {
-            console.error('Error fetching bookings:', data.message);
-          }
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        } finally {
-          setLoading(false); // Hide indicator
-        }
-      };
-  
       fetchData();
     }, [])
   );
@@ -89,6 +90,7 @@ export default function HomeScreen({ navigation }) {
       const result = await approveBooking(userData.id, id);
       if (result.success) {
         Alert.alert('Booking Accepted', `Booking ID: ${id} has been accepted.`);
+        fetchData();
       } else {
         Alert.alert('Error', result.message || 'Failed to approve booking.');
       }
