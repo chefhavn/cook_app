@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const Colors = {
-  Primary: '#6200ee', // Replace with your preferred primary color
+  Primary: '#503A73', // Replace with your preferred primary color
   Background: '#f5f5f5', // Background color for the screen
   Text: '#333', // Text color
 };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Alert, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import CustomInput from '../../component/CustomInput/CustomInput';
 import CustomButton from '../../component/CustomButton/CustomButton';
-import { login } from '../../services/api';
+import { login, checkUserExistence } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '../../utils/Colors';
 
@@ -28,6 +28,17 @@ const LoginScreen = ({ navigation }) => {
     if(!isChecked){
       Alert.alert('Error', "You've not agree the terms and condition"); // Show an error message
       return;
+    }
+
+    try {
+      const response = await checkUserExistence(phone);
+      console.log("Phone Number", response) 
+      if(response.exist === 'No'){
+        Alert.alert('Error', 'No User Found, Please Register to Continue');
+        return
+      }
+    } catch (error) {
+      throw new Error('Failed to store user data.');
     }
 
     try {
@@ -71,24 +82,6 @@ const LoginScreen = ({ navigation }) => {
   const handleCheckboxPress = () => {
     setIsChecked(!isChecked);
   };
-
-  const handleRegister = async () => {
-    setIsLoading(true);
-    try {
-      const response = await register({ name, email, password, phone, role: 'Vendor' });
-      console.log('Registration successful:', response);
-      Alert.alert('Success', 'Registration successful');
-      setIsLoading(false);
-      navigation.navigate('Login');
-    } catch (error) {
-      console.error('Registration error:', error);
-      Alert.alert('Error', error.message || 'Registration failed');
-      setIsLoading(false);
-    }
-  };
-
-
-
 
   return (
     <View style={styles.container}>

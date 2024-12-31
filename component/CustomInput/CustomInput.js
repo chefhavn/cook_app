@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TextInput, StyleSheet, View } from 'react-native';
 
 const Colors = {
-  PRIMARY: '#6200ee', // Replace with your preferred primary color
+  PRIMARY: '#503A73', // Replace with your preferred primary color
   BACKGROUND: '#ffffff', // Background color of the input
 };
 

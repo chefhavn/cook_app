@@ -52,12 +52,19 @@ export default function KYCVerificationScreen({ navigation }) {
     const checkKYCStatusAsync = async () => {
       try {
         const user = await AsyncStorage.getItem('user');
-        console.log(user)
+
         const chefId = JSON.parse(user).id;
         const response = await checkKYCStatus(chefId);
         console.log("KYC STATUS", response)
         if (response.success) {
           setIsKYCVerified(true);
+          if(user){
+            const localUser = JSON.parse(user);
+
+            localUser.kyc_status = response?.kyc?.status;
+
+            await AsyncStorage.setItem('user', JSON.stringify(localUser))
+          }
           setKYCMessage('Your profile is under verification.');
         } else {
           setIsKYCVerified(false);

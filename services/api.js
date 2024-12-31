@@ -190,3 +190,69 @@ export const endBooking = async (bookingId, timeToPrepare) => {
   }
 };
 
+// Function to edit vendor profile
+export const editVendorProfile = async (userId, profileData) => {
+  const payload = { userId, ...profileData };
+  try {
+    const response = await axiosInstance.put('/api/auth/edit-vendor-profile', payload);
+    console.log("Hello",response)
+    return response;
+  } catch (error) {
+    console.error('Error during vendor profile update:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const deleteUserAccount = async (userId) => {
+  try {
+    const response = await axiosInstance.delete(`/api/auth/delete-vendor-account/${userId}`);
+    console.log('Account deleted successfully:', response);
+    return response;
+  } catch (error) {
+    console.error('Error during account deletion:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const checkUserExistence = async (phone) => {
+  try {
+    const resposne = await axiosInstance.get(`/api/auth/check-user-exist?phone=${phone}`);
+    return resposne;
+  } catch (error) {
+    console.error('Error during account deletion:', error.response?.data || error.message);
+  }
+}
+
+// API method for sending a login email
+export const sendLoginEmail = async (email, ip, device) => {
+  try {
+    const response = await axiosInstance.post('/api/send-login-email', {
+      email,
+      ip,
+      device,
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error sending login email:', error);
+    throw error;
+  }
+};
+
+// API method for sending a registration email
+export const sendRegisterEmail = async (email, name, ip, device) => {
+  try {
+    const response = await axiosInstance.post('/api/send-register-email', {
+      email,
+      name,
+      ip,
+      device,
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error sending registration email:', error);
+    throw error;
+  }
+};
+

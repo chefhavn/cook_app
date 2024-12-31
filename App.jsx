@@ -107,7 +107,6 @@ const App = () => {
   const fetchUserData = async () => {
     try {
       const storedUserData = await AsyncStorage.getItem('user');
-      console.log("afafaffafas", storedUserData)
       if (storedUserData !== null) {
         setIsLoggedIn(true);
       } else {
@@ -146,19 +145,18 @@ const App = () => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
-                name="OrderDetails"
-                component={OrderDetails}
-                options={{ title: 'Order Details' }}
-              />
-              <Stack.Screen
                 name="KYCVerification"
                 component={KYCVerificationScreen}
                 options={{ title: 'Verify KYC' }}
               />
-
-<Stack.Screen name="PendingAmount" component={PendingAmount} />
-
+              <Stack.Screen name="PendingAmount" component={PendingAmount} />
               
+
+              <Stack.Screen
+                name="OrderDetails"
+                component={OrderDetails}
+                options={{ title: 'Order Details' }}
+              />
               <Stack.Screen
                 name="EditProfileScreen"
                 component={EditProfileScreen}
@@ -204,13 +202,13 @@ const App = () => {
             </>
           ) : (
             <>
+
+
               <Stack.Screen
                 name="Login"
                 component={LoginScreen}
                 options={{ headerShown: false }}
               />
-
-
               <Stack.Screen name="OTP" component={OTPScreen} />
               <Stack.Screen
                 name="Register"

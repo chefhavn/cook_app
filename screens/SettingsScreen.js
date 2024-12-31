@@ -8,6 +8,7 @@ import {
   Alert,
   Image,
   Modal,
+  Linking,
 } from 'react-native';
 import Colors from '../utils/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,20 +23,21 @@ import LocationSettingsScreen from './LocationSettingsScreen/LocationSettingsScr
 import HelpScreen from './HelpScreen/HelpScreen';
 import TermsScreen from './TermsAndConditions/TermsScreen';
 import PrivacyPolicyScreen from './PrivacyPolicy/PrivacyPolicyScreen';
+import { deleteUserAccount } from '../services/api';
 
 const SettingsScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
 
-  // List of screens with corresponding names and targets
   const screens = [
     { name: 'Edit Profile', screen: 'EditProfileScreen', icon: require('../assets/images/edit_profile_icon.png') },
     { name: 'About', screen: 'AboutScreen', icon: require('../assets/images/about_icon.png') },
     { name: 'My Earnings', screen: 'MyEarningsScreen', icon: require('../assets/images/rupee_icon.png') },
-    { name: 'Location Settings', screen: 'LocationSettingsScreen', icon: require('../assets/images/setting_icon.png') },
+    { name: 'Location Settings', screen: 'LocationSettingsScreen', icon: require('../assets/images/setting_icon.png'), disabled: true },
     { name: 'Help', screen: 'HelpScreen', icon: require('../assets/images/help_icon.png') },
     { name: 'Terms & Conditions', screen: 'TermsScreen', icon: require('../assets/images/t&c_icon.png') },
-    { name: 'Privacy Policy', screen: 'PrivacyPolicyScreen', icon: require('../assets/images/privacy&policy_icon.png') },
+    { name: 'Privacy Policy', screen: '', icon: require('../assets/images/privacy&policy_icon.png') },
   ];
 
   const rightArrowIcon = require('../assets/images/right_angle_icon.png');
@@ -62,9 +64,7 @@ const SettingsScreen = ({ navigation }) => {
     try {
       const user = await AsyncStorage.getItem('user');
       if (user) {
-        // TODO 
-        // Delete Only User
-        await AsyncStorage.clear();
+        await AsyncStorage.removeItem('user'); // Clear only user data
         Alert.alert('Logged out', 'You have been logged out.');
         navigation.dispatch(
           CommonActions.reset({
@@ -79,6 +79,41 @@ const SettingsScreen = ({ navigation }) => {
       console.error('Error logging out:', error);
       Alert.alert('Error', 'An error occurred while logging out.');
     }
+  };
+
+  const handleAccountDeletion = async () => {
+    setDeleteAccountModalVisible(false);
+    try {
+      const user = await AsyncStorage.getItem('user');
+      if (!user) {
+        Alert.alert('No User Found', 'No user data found.');
+        return;
+      }
+  
+      const userId = JSON.parse(user).id;
+  
+      // Call the deleteUserAccount API function to delete the user account
+      const response = await deleteUserAccount(userId);
+  
+      // If API call is successful
+      await AsyncStorage.removeItem('user');
+      Alert.alert('Account Deleted', 'Your account has been successfully deleted.');
+  
+      // Navigate the user back to the Login screen
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      Alert.alert('Error', 'An error occurred while deleting your account.');
+    }
+  };
+
+  const handlePrivacyPolicyPress = () => {
+    Linking.openURL('https://chefhavn.com/privacy-policy'); // Open the privacy policy URL in a browser
   };
 
   return (
@@ -120,17 +155,24 @@ const SettingsScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
+
         {screens.map((item, index) => (
           <TouchableOpacity
             key={index}
-            style={styles.itemContainer}
-            onPress={() => navigation.navigate(item.screen)}
+            style={[styles.itemContainer, item.disabled && styles.disabledItem]}
+            onPress={() => item.screen ? navigation.navigate(item.screen) : handlePrivacyPolicyPress()}
+            disabled={item.disabled}
           >
             <Image source={item.icon} style={styles.iconStyle} />
             <Text style={styles.itemText}>{item.name}</Text>
             <Image source={rightArrowIcon} style={styles.arrowStyle} />
           </TouchableOpacity>
         ))}
+
+        <TouchableOpacity onPress={() => setDeleteAccountModalVisible(true)} style={styles.itemContainer}>
+          <Text style={styles.deleteAccountText}>Delete Account</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.itemContainer}>
           <Image source={logoutIcon} style={styles.iconStyle} />
           <Text style={styles.itemText}>Logout</Text>
@@ -142,21 +184,39 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirm Logout</Text>
-            <Text style={styles.modalMessage}>
-              Are you sure you want to log out?
-            </Text>
+            <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
-                style={[styles.modalButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.PRIMARY }]}
-              >
+                style={[styles.modalButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.PRIMARY }]}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleLogout}
-                style={[styles.modalButton, { backgroundColor: Colors.PRIMARY }]}
-              >
+                style={[styles.modalButton, { backgroundColor: Colors.PRIMARY }]}>
                 <Text style={styles.logoutButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal visible={deleteAccountModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirm Account Deletion</Text>
+            <Text style={styles.modalMessage}>Are you sure you want to delete your account? This action is irreversible.</Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                onPress={() => setDeleteAccountModalVisible(false)}
+                style={[styles.modalButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.PRIMARY }]}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAccountDeletion}
+                style={[styles.modalButton, { backgroundColor: Colors.RED }]}>
+                <Text style={styles.logoutButtonText}>Delete Account</Text>
               </TouchableOpacity>
             </View>
           </View>

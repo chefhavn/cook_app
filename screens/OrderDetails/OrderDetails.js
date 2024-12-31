@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '../../utils/Colors';
@@ -15,43 +16,63 @@ import { startBooking, endBooking } from '../../services/api';
 export default function OrderDetails({ route, navigation }) {
   const { order } = route.params;
   const booking = order?.booking_id;
-  const [orderEndAmount, setOrderEndAmount] = useState(1599)
-  const [amountDue, setAmountDue] = useState(0)
-
+  const [orderEndAmount, setOrderEndAmount] = useState(1599);
+  const [amountDue, setAmountDue] = useState(0);
   const [isCookingStarted, setIsCookingStarted] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [canStartCooking, setCanStartCooking] = useState(false);
 
+  useEffect(() => {
+    const checkStartCookingTime = () => {
+      const now = new Date();
+      const bookingTime = new Date(booking?.date);
+      const timeDifference = (bookingTime - now) / (1000 * 60 * 60); // Difference in hours
 
+      if (timeDifference <= 2) {
+        setCanStartCooking(true);
+      } else {
+        setCanStartCooking(false);
+      }
+    };
 
-const calculateOrderAmount = () => {
-  console.log("tYPE of ORDER AMOUNT", typeof orderEndAmount);
-  if(orderEndAmount === 1199){
-    console.log("1st IF ELSE")
-    setAmountDue(0)
-}
-else if (orderEndAmount < 1199){
-  console.log("2ND IF ELSE")
-  setAmountDue(0)
-}
-else{
-    let amount_due = orderEndAmount - 1199;
-    console.log("aMOUNT DUE", amount_due);
-    console.log("3RD IF ELSE")
-    setAmountDue(amount_due)
+    checkStartCookingTime();
+    const interval = setInterval(checkStartCookingTime, 60000); // Update every minute
 
-    navigation.navigate('PendingAmount', { amountDue: amount_due });
+    return () => clearInterval(interval);
+  }, [booking]);
 
-}
-}
- 
-  // Start Cooking
+  const calculateOrderAmount = () => {
+    if (orderEndAmount <= 1199) {
+      setAmountDue(0);
+    } else {
+      const amount_due = orderEndAmount - 1199;
+      setAmountDue(amount_due);
+      navigation.navigate('PendingAmount', { amountDue: amount_due });
+    }
+  };
+
+  const handleOtpVerification = async () => {
+    if (otp === '1234') {
+      Alert.alert('Success', 'OTP Verified. You can now start cooking.');
+      setIsOtpVerified(true);
+    } else {
+      Alert.alert('Error', 'Invalid OTP. Please try again.');
+    }
+  };
+
   const handleStartCooking = async () => {
     try {
+      if (!isOtpVerified) {
+        Alert.alert('Error', 'Please verify the OTP first.');
+        return;
+      }
+
       const response = await startBooking(booking._id);
       if (response.success) {
         setIsCookingStarted(true);
 
-        // Store the start time in AsyncStorage
         const startTime = Date.now();
         await AsyncStorage.setItem('startTime', JSON.stringify(startTime));
 
@@ -103,7 +124,6 @@ else{
     }
   };
 
-
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
@@ -122,44 +142,48 @@ else{
 
       <View style={styles.actionsContainer}>
         {!isCookingStarted && booking.status === 'Accepted' ? (
-          <TouchableOpacity style={styles.button} onPress={handleStartCooking}>
-            <Text style={styles.buttonText}>Start Cooking</Text>
-          </TouchableOpacity>
+          !canStartCooking ? (
+            <>
+              <TouchableOpacity style={styles.button} onPress={handleStartCooking}>
+                <Text style={styles.buttonText}>Start Cooking</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter OTP"
+                keyboardType="number-pad"
+                maxLength={4}
+                value={otp}
+                onChangeText={setOtp}
+              />
+              <TouchableOpacity style={styles.button} onPress={handleOtpVerification}>
+                <Text style={styles.buttonText}>Verify OTP</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={styles.message}>
+              You can start cooking 2 hours before the scheduled time.
+            </Text>
+          )
         ) : (
           <>
-            {
-              booking.status === 'Completed' ? (
-                <>
-                  <Text style={styles.timerText}>Order Completed</Text>
-                </>
-              ) : (
-                <>
-                  {/* <Text style={styles.timerText}>Elapsed Time: {formatTime(elapsedTime)}</Text> */}
-                  <TouchableOpacity
-                    style={[styles.button, styles.endCookButton]}
-                    onPress={() => setModalVisible(true)}
-                  >
-                    <Text style={styles.buttonText}>End Cooking</Text>
-                  </TouchableOpacity>
-                </>
-
-              )
-            }
-
-
+            {booking.status === 'Completed' ? (
+              <Text style={styles.timerText}>Order Completed</Text>
+            ) : (
+              <TouchableOpacity
+                style={[styles.button, styles.endCookButton]}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>End Cooking</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
       </View>
 
-
-      {/* Confirmation Modal */}
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              {/* You completed this cooking in {formatTime(elapsedTime)}. Are you sure you want to end? */}
-              Are you sure you want to end?
-            </Text>
+            <Text style={styles.modalText}>Are you sure you want to end?</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.button, styles.modalButton]}
@@ -183,6 +207,7 @@ else{
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

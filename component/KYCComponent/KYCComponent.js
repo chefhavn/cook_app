@@ -34,7 +34,6 @@ const KYCComponent = ({ navigation }) => {
   );
 
   const handleCompleteKYC = () => {
-    Alert.alert('KYC', 'Navigating to Complete KYC Screen...');
     navigation.navigate('KYCVerification');
   };
 

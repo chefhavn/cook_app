@@ -1,4 +1,5 @@
 import React, { useState, useRef, useContext, useEffect } from 'react';
+import { Platform } from 'react-native';
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Colors from '../../utils/Colors';
-import { sendOtp, login, register } from '../../services/api';
+import { sendOtp, login, register , sendLoginEmail, sendRegisterEmail } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OTPSkeleton from '../Skeletons/OTPSkeleton';
 
@@ -78,6 +79,21 @@ const OTPScreen = ({ route, navigation }) => {
   };
 
   // Handle OTP verification
+  const getDeviceName = () => {
+    return Platform.OS === 'ios' ? 'iOS Device' : 'Android Device';
+  };
+  
+  const getIpAddress = async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Error fetching IP address:', error);
+      return 'Unknown IP';
+    }
+  };
+  
   const handleOtpVerification = async () => {
     const enteredOtp = otp.join('');
     setLoading(true);
@@ -95,6 +111,20 @@ const OTPScreen = ({ route, navigation }) => {
           const storedUser = await AsyncStorage.getItem('user');
           if (storedUser) {
             console.log('User data stored successfully:', storedUser);
+  
+            // Get device name and IP address
+            const deviceName = getDeviceName();
+            const ipAddress = await getIpAddress();
+  
+            if (email) {
+              try {
+                await sendRegisterEmail(email, name, ipAddress, deviceName);
+                console.log('Login notification email sent for registration');
+              } catch (emailError) {
+                console.error('Error sending login notification email:', emailError);
+              }
+            }
+  
             setLoading(false);
             navigation.navigate('HomeTabs');
           } else {
@@ -116,6 +146,20 @@ const OTPScreen = ({ route, navigation }) => {
           const storedUser = await AsyncStorage.getItem('user');
           if (storedUser) {
             console.log('User data stored successfully:', storedUser);
+  
+            // Get device name and IP address
+            const deviceName = getDeviceName();
+            const ipAddress = await getIpAddress();
+  
+            if (response.user.email) {
+              try {
+                await sendLoginEmail(response.user.email, ipAddress, deviceName);
+                console.log('Login notification email sent for login');
+              } catch (emailError) {
+                console.error('Error sending login notification email:', emailError);
+              }
+            }
+  
             setLoading(false);
             navigation.navigate('HomeTabs');
           } else {
