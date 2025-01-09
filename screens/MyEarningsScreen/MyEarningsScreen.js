@@ -40,7 +40,7 @@ const MyEarningsScreen = ({ navigation }) => {
     if (chefId) {
       const fetchEarningsData = async () => {
         try {
-          const response = await fetch(`http://192.168.1.46:3000/api/booking/earning-details/${chefId}`);
+          const response = await fetch(`https://www.chefhavn.com/api/booking/earning-details/${chefId}`);
           const data = await response.json();
           setEarningsData(data);
           setLoading(false);

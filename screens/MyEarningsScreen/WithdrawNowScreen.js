@@ -41,7 +41,7 @@ const WithdrawNowScreen = ({ route, navigation }) => {
         }
 
         try {
-            const response = await fetch('http://192.168.1.46:3000/api/booking/withdraw', {
+            const response = await fetch('https://www.chefhavn.com/api/booking/withdraw', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
