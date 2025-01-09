@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -23,6 +23,10 @@ import TermsScreen from './screens/TermsAndConditions/TermsScreen';
 import PrivacyPolicyScreen from './screens/PrivacyPolicy/PrivacyPolicyScreen';
 import AppWrapper from './AppWrapper';
 import PendingAmount from './screens/PendingAmount/PendingAmount';
+import WithdrawNowScreen from './screens/MyEarningsScreen/WithdrawNowScreen';
+import EarningsDetailsScreen from './screens/MyEarningsScreen/EarningsDetailsScreen';
+import WithdrawalsDetailsScreen from './screens/MyEarningsScreen/WithdrawalsDetailsScreen';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -97,16 +101,15 @@ const styles = StyleSheet.create({
   },
 });
 
-
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-
-  // Function to fetch user data
+  // Fetch user data and check login status
   const fetchUserData = async () => {
     try {
       const storedUserData = await AsyncStorage.getItem('user');
+      console.log("App js",storedUserData)
       if (storedUserData !== null) {
         setIsLoggedIn(true);
       } else {
@@ -117,13 +120,11 @@ const App = () => {
     }
   };
 
-
-  // Manage initial app load
+  // Manage initial app load and state
   useEffect(() => {
     const initializeApp = async () => {
-      setIsLoading(true);
       await fetchUserData();
-      setIsLoading(false);
+      setIsLoading(false); // Set loading to false once the check is complete
     };
 
     initializeApp();
@@ -137,11 +138,21 @@ const App = () => {
     <AppWrapper>
       <NavigationContainer>
         <Stack.Navigator>
-          {isLoggedIn ? (
             <>
               <Stack.Screen
                 name="HomeTabs"
                 component={BottomTabs}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Login"
+                component={LoginScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="OTP" component={OTPScreen} />
+              <Stack.Screen
+                name="Register"
+                component={RegisterScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen
@@ -150,8 +161,6 @@ const App = () => {
                 options={{ title: 'Verify KYC' }}
               />
               <Stack.Screen name="PendingAmount" component={PendingAmount} />
-              
-
               <Stack.Screen
                 name="OrderDetails"
                 component={OrderDetails}
@@ -167,68 +176,61 @@ const App = () => {
                 component={AboutScreen}
                 options={{ title: 'About' }}
               />
-
               <Stack.Screen
                 name="MyEarningsScreen"
                 component={MyEarningsScreen}
-                options={{ title: 'Earning' }}
+                options={{ title: 'Earnings' }}
               />
-
               <Stack.Screen
                 name="LocationSettingsScreen"
                 component={LocationSettingsScreen}
                 options={{ title: 'Location' }}
               />
-
               <Stack.Screen
                 name="HelpScreen"
                 component={HelpScreen}
                 options={{ title: 'Help' }}
               />
-
               <Stack.Screen
                 name="TermsScreen"
                 component={TermsScreen}
                 options={{ title: 'Terms & Condition' }}
               />
-
               <Stack.Screen
                 name="PrivacyPolicyScreen"
                 component={PrivacyPolicyScreen}
                 options={{ title: 'Privacy & Policy' }}
               />
+              <Stack.Screen
+                name="WithdrawNow"
+                component={WithdrawNowScreen}
+                options={{ title: 'Withdraw Now' }}
+              />
+              <Stack.Screen
+                name="EarningsDetails"
+                component={EarningsDetailsScreen}
+                options={{ title: 'All Earnings Details' }}
+              />
+              <Stack.Screen
+                name="WithdrawalsDetails"
+                component={WithdrawalsDetailsScreen}
+                options={{ title: 'All Withdraw Details' }}
+              />
 
-
+              {
+                !isLoggedIn && (
+                  <>
+                  
+                  
+                  </>
+                )
+              }
+              
             </>
-          ) : (
-            <>
-
-
-              <Stack.Screen
-                name="Login"
-                component={LoginScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="OTP" component={OTPScreen} />
-              <Stack.Screen
-                name="Register"
-                component={RegisterScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="HomeTabs"
-                component={BottomTabs}
-                options={{
-                  headerShown: false
-                }}
-              />
-            </>
-          )}
         </Stack.Navigator>
       </NavigationContainer>
     </AppWrapper>
   );
-
 };
 
 export default App;

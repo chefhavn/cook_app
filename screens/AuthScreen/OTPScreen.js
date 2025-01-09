@@ -34,8 +34,8 @@ const OTPScreen = ({ route, navigation }) => {
       try {
         const response = await sendOtp(email, phoneNumber, loginWithEmail);
         console.log("Response",response)
-        // setSentOtp(response.otp);
-        setSentOtp(1234);
+        setSentOtp(response.otp);
+        // setSentOtp(1234);
 
         setTimeout(() => {
           setLoading(false);
@@ -206,9 +206,9 @@ const OTPScreen = ({ route, navigation }) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
 
       <View style={styles.container}>
-        <View style={styles.header}>
+        {/* <View style={styles.header}>
           <Text style={styles.screenTitle}>OTP Screen</Text>
-        </View>
+        </View> */}
         {loading ? (
           <OTPSkeleton />
         ) : (

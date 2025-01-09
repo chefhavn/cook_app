@@ -44,6 +44,7 @@ const CustomInput = ({
         style={styles.input}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        placeholderTextColor="#333"
       />
     </View>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, Alert, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import CustomInput from '../../component/CustomInput/CustomInput';
 import CustomButton from '../../component/CustomButton/CustomButton';
 import { login, checkUserExistence } from '../../services/api';
@@ -41,46 +41,18 @@ const LoginScreen = ({ navigation }) => {
       throw new Error('Failed to store user data.');
     }
 
-    try {
-      const response = await login(phone);
-      console.log("Phone Number", phone)
-      // Check if login is successful (modify based on API response structure)
-      if (response.success) {
-        console.log('Login successful:', response.user);
-
-        // Store login details (e.g., token, user info) in AsyncStorage
-        await AsyncStorage.setItem('user', JSON.stringify(response.user));
-
-        // Check if user data is successfully stored
-        const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser) {
-          console.log('User data stored successfully:', storedUser);
-
-          // Alert.alert('Success', 'Login successful');
-          setIsLoading(false);
-
-          // Navigate to Home Screen
-          navigation.navigate('HomeTabs');
-        } else {
-          throw new Error('Failed to store user data.');
-        }
-      } else {
-        //   Alert.alert('Error', response.message || 'Login failed');
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      // Alert.alert('Error', error.message || 'Login failed');
-      setIsLoading(false);
-    }
-
     navigation.navigate('OTP', { email: '', phoneNumber: phone, loginWith2Email: false });
+    
 
   };
 
   // Function to handle checkbox toggle
   const handleCheckboxPress = () => {
     setIsChecked(!isChecked);
+  };
+
+  const handleLinkPress = (url) => {
+    Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
   };
 
   return (
@@ -115,10 +87,15 @@ const LoginScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
           <Text style={styles.termsText}>
-            I've read and agree with the{' '}
-            <Text style={styles.linkText}>Terms and Conditions</Text> and the{' '}
-            <Text style={styles.linkText}>Privacy Policy</Text>.
-          </Text>
+      I've read and agree with the{' '}
+      <TouchableOpacity onPress={() => handleLinkPress('https://chefhavn.com/terms&condition')}>
+        <Text style={styles.linkText}>Terms and Conditions</Text>
+      </TouchableOpacity>
+      {' '}and the{' '}
+      <TouchableOpacity onPress={() => handleLinkPress('https://chefhavn.com/privacy&policy')}>
+        <Text style={styles.linkText}>Privacy Policy</Text>
+      </TouchableOpacity>.
+    </Text>
         </View>
         <CustomButton title="Login" onPress={handleLogin} isLoading={isLoading} />
         {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
@@ -195,7 +172,7 @@ const styles = StyleSheet.create({
   linkText: {
     color: Colors.PRIMARY,
     fontWeight: 'bold',
-    textDecorationLine: 'underline', // Underline the link text
+    textDecorationLine: 'underline',
   },
   registerText: {
     marginTop: 20,
@@ -204,7 +181,7 @@ const styles = StyleSheet.create({
   registerLink: {
     color: Colors.PRIMARY,
     fontWeight: 'bold',
-  },
+  }
 });
 
 export default LoginScreen;

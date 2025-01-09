@@ -1,55 +1,124 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';  // Import AsyncStorage
 
 const Colors = {
-  Primary: '#503A73', // Primary color for the buttons
-  Background: '#f5f5f5', // Background color for the screen
-  Text: '#333', // Text color
-  CardBackground: '#ffffff', // Card background color
-  Accent: '#ffa500', // Accent color for action items
-  ButtonText: '#fff', // Button text color
-  BorderColor: '#ddd', // Border color for separating items
+  Primary: '#503A73',
+  Background: '#f5f5f5',
+  Text: '#333',
+  CardBackground: '#ffffff',
+  Accent: '#ffa500',
+  ButtonText: '#fff',
+  BorderColor: '#ddd',
+  ButtonHover: '#6a4b96', // Hover effect color for buttons
 };
 
-const recentTransactions = [
-  { id: '1', date: '2024-12-20', amount: '$100.00' },
-  { id: '2', date: '2024-12-19', amount: '$150.00' },
-  { id: '3', date: '2024-12-18', amount: '$75.00' },
-];
+const MyEarningsScreen = ({ navigation }) => {
+  const [chefId, setChefId] = useState(null);  // State to hold the chefId
+  const [earningsData, setEarningsData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-const MyEarningsScreen = () => {
+  // Fetch user data from AsyncStorage on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setChefId(parsedUser.id);  // Set chefId in the state
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Fetch earnings data from the backend after the chefId is available
+  useEffect(() => {
+    if (chefId) {
+      const fetchEarningsData = async () => {
+        try {
+          const response = await fetch(`http://192.168.1.46:3000/api/booking/earning-details/${chefId}`);
+          const data = await response.json();
+          setEarningsData(data);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching earnings data:', error);
+          setLoading(false);
+        }
+      };
+
+      fetchEarningsData();
+    }
+  }, [chefId]);
+
   const renderTransaction = ({ item }) => (
     <View style={styles.transactionItem}>
-      <Text style={styles.transactionDate}>{item.date}</Text>
-      <Text style={styles.transactionAmount}>{item.amount}</Text>
+      <Text style={styles.transactionDate}>{new Date(item.date).toLocaleDateString()}</Text>
+      <Text style={styles.transactionAmount}>₹{item.amount}</Text>
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={Colors.Primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>My Earnings</Text>
-
+      {/* Earnings Overview Section */}
       <View style={styles.earningsOverview}>
         <Text style={styles.totalEarningsLabel}>Total Earnings</Text>
-        <Text style={styles.totalEarningsAmount}>$325.00</Text>
+        <Text style={styles.totalEarningsAmount}>₹{earningsData.totalEarnings}</Text>
       </View>
 
+      {/* Latest Earnings Section */}
       <View style={styles.transactionsSection}>
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <Text style={styles.sectionTitle}>Recent Earnings</Text>
         <FlatList
-          data={recentTransactions}
+          data={earningsData.latestEarnings}
           renderItem={renderTransaction}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           style={styles.transactionsList}
         />
+        <TouchableOpacity
+          style={styles.viewAllButton}
+          onPress={() => navigation.navigate('EarningsDetails', { chefId })}>
+          <Text style={styles.viewAllText}>View All</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>Withdraw Earnings</Text>
+      {/* Recent Withdrawals Section */}
+      <View style={styles.transactionsSection}>
+        <Text style={styles.sectionTitle}>Recent Withdrawals</Text>
+        <FlatList
+          data={earningsData.latestWithdrawals}
+          renderItem={renderTransaction}
+          keyExtractor={(item) => item._id}
+          style={styles.transactionsList}
+        />
+        <TouchableOpacity
+          style={styles.viewAllButton}
+          onPress={() => navigation.navigate('WithdrawalsDetails', { chefId })}>
+          <Text style={styles.viewAllText}>View All</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>View Details</Text>
+      </View>
+
+      {/* Withdraw Now Button */}
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('WithdrawNow', {
+            availableBalance: earningsData.availableBalance, // Passing available balance
+            chefId: chefId
+          })}
+        >
+          <Text style={styles.actionButtonText}>Withdraw Now</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -61,13 +130,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.Background,
     padding: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.Primary,
-    textAlign: 'center',
-    marginBottom: 20,
   },
   earningsOverview: {
     backgroundColor: Colors.CardBackground,
@@ -111,6 +173,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.BorderColor,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   transactionDate: {
     fontSize: 16,
@@ -119,6 +186,16 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     color: Colors.Primary,
+    fontWeight: 'bold',
+  },
+  viewAllButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  viewAllText: {
+    color: Colors.Accent,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   actionButtonsContainer: {
@@ -134,11 +211,18 @@ const styles = StyleSheet.create({
     width: '80%',
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 3, // Shadow for button
   },
   actionButtonText: {
     color: Colors.ButtonText,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.Background,
   },
 });
 

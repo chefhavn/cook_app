@@ -42,6 +42,7 @@ const SettingsScreen = ({ navigation }) => {
 
   const rightArrowIcon = require('../assets/images/right_angle_icon.png');
   const logoutIcon = require('../assets/images/logout_icon.png');
+  const firstLetter = userData?.name?.charAt(0).toUpperCase() || 'J';
 
   useFocusEffect(
     useCallback(() => {
@@ -64,7 +65,8 @@ const SettingsScreen = ({ navigation }) => {
     try {
       const user = await AsyncStorage.getItem('user');
       if (user) {
-        await AsyncStorage.removeItem('user'); // Clear only user data
+        await AsyncStorage.removeItem('user');
+
         Alert.alert('Logged out', 'You have been logged out.');
         navigation.dispatch(
           CommonActions.reset({
@@ -73,13 +75,20 @@ const SettingsScreen = ({ navigation }) => {
           })
         );
       } else {
-        Alert.alert('No User Found', 'You are not logged in.');
+        // Alert.alert('No User Found', 'You are not logged in.');
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          })
+        );
       }
     } catch (error) {
       console.error('Error logging out:', error);
       Alert.alert('Error', 'An error occurred while logging out.');
     }
   };
+
 
   const handleAccountDeletion = async () => {
     setDeleteAccountModalVisible(false);
@@ -89,16 +98,16 @@ const SettingsScreen = ({ navigation }) => {
         Alert.alert('No User Found', 'No user data found.');
         return;
       }
-  
+
       const userId = JSON.parse(user).id;
-  
+
       // Call the deleteUserAccount API function to delete the user account
       const response = await deleteUserAccount(userId);
-  
+
       // If API call is successful
       await AsyncStorage.removeItem('user');
       Alert.alert('Account Deleted', 'Your account has been successfully deleted.');
-  
+
       // Navigate the user back to the Login screen
       navigation.dispatch(
         CommonActions.reset({
@@ -122,13 +131,19 @@ const SettingsScreen = ({ navigation }) => {
         {/* Profile Header Section */}
         <View style={styles.profileContainer}>
           <View style={styles.profileInfo}>
-            <Avatar
-              rounded
-              size="large"
-              source={{
-                uri: userData?.profilePicUrl || 'https://example.com/profile-pic.jpg',
-              }}
-            />
+            {/* Custom Avatar */}
+            <View style={[styles.avatar, { backgroundColor: 'white' }]}>
+            {userData?.avatar ? (
+          <Image
+            source={{ uri: userData.avatar }} // Display the image if avatar is available
+            style={styles.avatarImage}
+          />
+        ) : (
+          <Text style={[styles.avatarText, { color: Colors.PRIMARY }]}>
+            {firstLetter} {/* Display the first letter if no avatar */}
+          </Text>
+        )}
+            </View>
             <View style={styles.profileText}>
               <Text style={styles.profileName}>
                 {userData ? userData.name : 'John Doe'}
@@ -138,7 +153,7 @@ const SettingsScreen = ({ navigation }) => {
           </View>
           <View style={styles.earningsCard}>
             <Text style={styles.earningsTitle}>Earned Today</Text>
-            <Text style={styles.earningsValue}>${userData?.earnings || '259.90'}</Text>
+            <Text style={styles.earningsValue}>₹{userData?.earnings || '259.90'}</Text>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{userData?.totalTrips || 15}</Text>
@@ -170,7 +185,8 @@ const SettingsScreen = ({ navigation }) => {
         ))}
 
         <TouchableOpacity onPress={() => setDeleteAccountModalVisible(true)} style={styles.itemContainer}>
-          <Text style={styles.deleteAccountText}>Delete Account</Text>
+          <Image source={logoutIcon} style={styles.iconStyle} />
+          <Text style={styles.itemText}>Delete Account</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.itemContainer}>
@@ -215,7 +231,7 @@ const SettingsScreen = ({ navigation }) => {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleAccountDeletion}
-                style={[styles.modalButton, { backgroundColor: Colors.RED }]}>
+                style={[styles.modalButton, { backgroundColor: Colors.PRIMARY }]}>
                 <Text style={styles.logoutButtonText}>Delete Account</Text>
               </TouchableOpacity>
             </View>
@@ -241,6 +257,21 @@ const styles = StyleSheet.create({
   profileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  avatar: {
+    width: 60, // Adjust size as needed
+    height: 60, // Adjust size as needed
+    borderRadius: 30, // To make it round
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15, // Space between avatar and profile text
+  },
+  avatarText: {
+    fontSize: 24, // Size of the letter
+    fontWeight: 'bold',
+  },
+  profileText: {
+    justifyContent: 'center',
   },
   profileText: {
     marginLeft: 15,
@@ -282,6 +313,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   statLabel: {
     fontSize: 14,
@@ -330,11 +366,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: "black"
   },
   modalMessage: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
+    color: Colors.PRIMARY
   },
   buttonContainer: {
     flexDirection: 'row',

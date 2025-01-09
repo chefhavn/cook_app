@@ -12,7 +12,6 @@ const Colors = {
 const TermsScreen = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Terms and Conditions</Text>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.section}>
           <Text style={styles.sectionText}>

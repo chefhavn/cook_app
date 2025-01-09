@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { editVendorProfile } from '../../services/api';
+import { editVendorProfile } from '../../services/api'; // Assuming this is your API for profile update
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const Colors = {
   Primary: '#503A73',
@@ -25,26 +27,38 @@ const EditProfileScreen = () => {
     email: '',
     phone: '',
     role: 'Vendor',
+    avatar: '', // avatar field for storing the avatar URI
   });
   const [loading, setLoading] = useState(false);
 
-  // Load profile data from AsyncStorage
+  // Load profile data and avatar from AsyncStorage
   useEffect(() => {
     const loadProfile = async () => {
-      const storedProfile = await AsyncStorage.getItem('user');
-      if (storedProfile) {
-        setProfile(JSON.parse(storedProfile));
+      try {
+        const storedProfile = await AsyncStorage.getItem('user');
+        if (storedProfile) {
+          const parsedProfile = JSON.parse(storedProfile);
+          setProfile(parsedProfile);
+
+          // Load the avatar image URI from AsyncStorage
+          const storedAvatar = await AsyncStorage.getItem('avatar');
+          if (storedAvatar) {
+            setProfile(prevProfile => ({ ...prevProfile, avatar: storedAvatar }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
       }
     };
     loadProfile();
   }, []);
 
-  // Handle input change
+  // Handle input changes (name, email, phone)
   const handleChange = (field, value) => {
     setProfile({ ...profile, [field]: value });
   };
 
-  // Handle profile update
+  // Handle profile update (only text fields are updated, avatar is not sent)
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
@@ -53,13 +67,14 @@ const EditProfileScreen = () => {
         name: profile.name,
         email: profile.email,
         phone: profile.phone,
+        role: profile.role, // Assuming role is part of the profile data
       };
 
-      // Call the API to update the vendor profile
+      // Call the API to update the vendor profile (without avatar)
       const response = await editVendorProfile(userId, updatedProfileData);
 
       if (response.success) {
-        // Update AsyncStorage with the new profile data
+        // Update AsyncStorage with the new profile data (but keep the avatar unchanged)
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
         Alert.alert('Success', 'Profile updated successfully');
       } else {
@@ -73,9 +88,41 @@ const EditProfileScreen = () => {
     }
   };
 
+  // Handle image selection for avatar
+  const handleSelectImage = () => {
+    launchImageLibrary(
+      {
+        mediaType: 'photo',
+        quality: 0.5,
+        includeBase64: true, // You can use base64 or URI as per your requirement
+      },
+      (response) => {
+        if (response.didCancel) {
+          console.log('User canceled image picker');
+        } else if (response.errorCode) {
+          Alert.alert('Error', 'Failed to pick image');
+        } else {
+          const avatarUri = response.assets[0].uri;
+          setProfile({ ...profile, avatar: avatarUri });
+
+          // Save the avatar URI to AsyncStorage
+          AsyncStorage.setItem('avatar', avatarUri);
+        }
+      }
+    );
+  };
 
   return (
     <View style={styles.container}>
+      <View style={styles.avatarContainer}>
+        <Image
+          source={{ uri: profile.avatar || 'https://via.placeholder.com/150' }} // Default avatar if no avatar selected
+          style={styles.avatar}
+        />
+        <TouchableOpacity style={styles.editIcon} onPress={handleSelectImage}>
+          <Text style={styles.editText}>✏️</Text>
+        </TouchableOpacity>
+      </View>
       <TextInput
         style={styles.input}
         placeholder="Name"
@@ -122,11 +169,30 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: Colors.Background,
   },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.Primary,
+  avatarContainer: {
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  avatar: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderColor: Colors.Primary,
+    marginBottom: 10,
+  },
+  editIcon: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: Colors.Button,
+    borderRadius: 20,
+    padding: 5,
+  },
+  editText: {
+    color: Colors.ButtonText,
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   input: {
     height: 50,
