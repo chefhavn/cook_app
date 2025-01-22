@@ -115,19 +115,29 @@ const EditProfileScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.avatarContainer}>
-        <Image
-          source={{ uri: profile.avatar || 'https://via.placeholder.com/150' }} // Default avatar if no avatar selected
-          style={styles.avatar}
-        />
+        {profile.avatar ? (
+          <Image
+            source={{ uri: profile.avatar }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={styles.defaultAvatar}>
+            <Text style={styles.defaultAvatarText}>
+              {profile.name ? profile.name[0].toUpperCase() : 'A'}
+            </Text>
+          </View>
+        )}
         <TouchableOpacity style={styles.editIcon} onPress={handleSelectImage}>
           <Text style={styles.editText}>✏️</Text>
         </TouchableOpacity>
       </View>
+
       <TextInput
         style={styles.input}
         placeholder="Name"
         value={profile.name}
         onChangeText={(text) => handleChange('name', text)}
+        placeholderTextColor="#000"
       />
       <TextInput
         style={styles.input}
@@ -135,6 +145,7 @@ const EditProfileScreen = () => {
         value={profile.email}
         onChangeText={(text) => handleChange('email', text)}
         keyboardType="email-address"
+        placeholderTextColor="#000"
       />
       <TextInput
         style={styles.input}
@@ -142,12 +153,16 @@ const EditProfileScreen = () => {
         value={profile.phone}
         onChangeText={(text) => handleChange('phone', text)}
         keyboardType="phone-pad"
+        placeholderTextColor="#000"
       />
       <TextInput
         style={styles.input}
         value={profile.role}
         editable={false}
+        placeholder="Role"
+        placeholderTextColor="#000"
       />
+
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleUpdateProfile}
@@ -181,6 +196,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.Primary,
     marginBottom: 10,
   },
+  defaultAvatar: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: Colors.Primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  defaultAvatarText: {
+    fontSize: 60,
+    color: Colors.ButtonText,
+    fontWeight: 'bold',
+  },
   editIcon: {
     position: 'absolute',
     bottom: 10,
@@ -202,6 +231,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 15,
     backgroundColor: '#fff',
+    color: '#000', // Text color for input fields
   },
   button: {
     height: 50,

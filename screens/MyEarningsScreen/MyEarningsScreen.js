@@ -69,58 +69,74 @@ const MyEarningsScreen = ({ navigation }) => {
     );
   }
 
+  const totalEarnings = earningsData?.totalEarnings;
+
   return (
     <View style={styles.container}>
       {/* Earnings Overview Section */}
       <View style={styles.earningsOverview}>
         <Text style={styles.totalEarningsLabel}>Total Earnings</Text>
-        <Text style={styles.totalEarningsAmount}>₹{earningsData.totalEarnings}</Text>
+        {totalEarnings && totalEarnings > 0 ? (
+          <Text style={styles.totalEarningsAmount}>₹{totalEarnings}</Text>
+        ) : (
+          <Text style={styles.noEarningsText}>No earnings available yet</Text>
+        )}
       </View>
 
       {/* Latest Earnings Section */}
-      <View style={styles.transactionsSection}>
-        <Text style={styles.sectionTitle}>Recent Earnings</Text>
-        <FlatList
-          data={earningsData.latestEarnings}
-          renderItem={renderTransaction}
-          keyExtractor={(item) => item._id}
-          style={styles.transactionsList}
-        />
-        <TouchableOpacity
-          style={styles.viewAllButton}
-          onPress={() => navigation.navigate('EarningsDetails', { chefId })}>
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
-      </View>
+      {earningsData?.latestEarnings && earningsData.latestEarnings.length > 0 ? (
+        <View style={styles.transactionsSection}>
+          <Text style={styles.sectionTitle}>Recent Earnings</Text>
+          <FlatList
+            data={earningsData.latestEarnings}
+            renderItem={renderTransaction}
+            keyExtractor={(item) => item._id}
+            style={styles.transactionsList}
+          />
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => navigation.navigate('EarningsDetails', { chefId })}>
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text style={styles.noDataText}>No earnings available.</Text>
+      )}
 
       {/* Recent Withdrawals Section */}
-      <View style={styles.transactionsSection}>
-        <Text style={styles.sectionTitle}>Recent Withdrawals</Text>
-        <FlatList
-          data={earningsData.latestWithdrawals}
-          renderItem={renderTransaction}
-          keyExtractor={(item) => item._id}
-          style={styles.transactionsList}
-        />
-        <TouchableOpacity
-          style={styles.viewAllButton}
-          onPress={() => navigation.navigate('WithdrawalsDetails', { chefId })}>
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
-      </View>
+      {earningsData?.latestWithdrawals && earningsData.latestWithdrawals.length > 0 ? (
+        <View style={styles.transactionsSection}>
+          <Text style={styles.sectionTitle}>Recent Withdrawals</Text>
+          <FlatList
+            data={earningsData.latestWithdrawals}
+            renderItem={renderTransaction}
+            keyExtractor={(item) => item._id}
+            style={styles.transactionsList}
+          />
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => navigation.navigate('WithdrawalsDetails', { chefId })}>
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text style={styles.noDataText}>No withdrawals available.</Text>
+      )}
 
       {/* Withdraw Now Button */}
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('WithdrawNow', {
-            availableBalance: earningsData.availableBalance, // Passing available balance
-            chefId: chefId
-          })}
-        >
-          <Text style={styles.actionButtonText}>Withdraw Now</Text>
-        </TouchableOpacity>
-      </View>
+      {totalEarnings && totalEarnings > 0 && (
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('WithdrawNow', {
+              availableBalance: earningsData.availableBalance, // Passing available balance
+              chefId: chefId
+            })}
+          >
+            <Text style={styles.actionButtonText}>Withdraw Now</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -151,6 +167,12 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: Colors.Primary,
+  },
+  noEarningsText: {
+    fontSize: 16,
+    color: Colors.Text,
+    textAlign: 'center',
+    marginTop: 10,
   },
   transactionsSection: {
     marginBottom: 30,
@@ -223,6 +245,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.Background,
+  },
+  noDataText: {
+    fontSize: 16,
+    color: Colors.Text,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

@@ -224,13 +224,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
+    color: '#000',  // Ensure title text is black
   },
   text: {
     marginVertical: 8, // Added space between text elements
     fontSize: 16,
+    color: '#000', // Set default text color to black
   },
   bold: {
     fontWeight: 'bold',
+    color: '#000', // Set bold text color to black
   },
   status: {
     fontWeight: 'bold',
@@ -258,6 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
     textAlign: 'center',
+    color: '#000', // Ensure timer text is black
   },
   modalContainer: {
     flex: 1,
@@ -275,6 +279,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
     textAlign: 'center',
+    color: '#000', // Ensure modal text is black
   },
   modalActions: {
     flexDirection: 'row',

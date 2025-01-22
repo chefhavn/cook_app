@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';  // Import
 const Colors = {
   Primary: '#503A73',
   Background: '#f5f5f5',
-  Text: '#333',
+  Text: '#333', // Black text color
   CardBackground: '#ffffff',
   Accent: '#ffa500',
   ButtonText: '#fff',
@@ -82,6 +82,16 @@ const WithdrawalsDetailsScreen = () => {
     );
   }
 
+  // Display a "No withdrawals found" message if no withdrawals data is available
+  if (!withdrawalsData || withdrawalsData.withdrawals.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>All Withdrawals</Text>
+        <Text style={styles.noDataMessage}>No withdrawals found.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>All Withdrawals</Text>
@@ -105,7 +115,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.Text,
+    color: 'black', // Set title text color to black
     marginBottom: 20,
   },
   transactionItem: {
@@ -120,7 +130,7 @@ const styles = StyleSheet.create({
   },
   transactionDate: {
     fontSize: 16,
-    color: Colors.Text,
+    color: 'black', // Set transaction date text color to black
   },
   transactionAmount: {
     fontSize: 16,
@@ -141,6 +151,12 @@ const styles = StyleSheet.create({
   },
   transactionsList: {
     marginTop: 10,
+  },
+  noDataMessage: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: 'black', // Set "No data found" message color to black
+    marginTop: 20,
   },
 });
 

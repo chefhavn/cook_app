@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const Colors = {
   Primary: '#503A73',
   Background: '#f5f5f5',
-  Text: '#333',
+  Text: '#333', // Black text color
   CardBackground: '#ffffff',
   Accent: '#ffa500',
   BorderColor: '#ddd',
@@ -19,7 +19,7 @@ const EarningsDetailsScreen = ({ route }) => {
   useEffect(() => {
     const fetchEarningsData = async () => {
       try {
-        const response = await fetch(`http://192.168.1.46:3000/api/booking/earning-details/${chefId}`);
+        const response = await fetch(`https://www.chefhavn.com/api/booking/earning-details/${chefId}`);
         const data = await response.json();
         console.log("Earnings Data:", data);
         setEarningsData(data);
@@ -48,6 +48,15 @@ const EarningsDetailsScreen = ({ route }) => {
     );
   }
 
+  if (!earningsData || earningsData.earnings_list.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>All Earnings</Text>
+        <Text style={styles.noDataMessage}>No earnings found.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>All Earnings</Text>
@@ -70,7 +79,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.Text,
+    color: 'black', // Set header text color to black
     marginBottom: 20,
   },
   transactionItem: {
@@ -85,7 +94,7 @@ const styles = StyleSheet.create({
   },
   transactionDate: {
     fontSize: 16,
-    color: Colors.Text,
+    color: 'black', // Set transaction date text color to black
   },
   transactionAmount: {
     fontSize: 16,
@@ -100,6 +109,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.Background,
+  },
+  noDataMessage: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: 'black', // Set "No data found" message color to black
+    marginTop: 20,
   },
 });
 

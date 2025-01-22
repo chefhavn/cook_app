@@ -86,8 +86,6 @@ const MyOrdersScreen = () => {
           </Text>
         </View>
 
-
-
         <View style={styles.numberPrice}>
           <Text style={styles.bookingNumber}>
             {order.booking_number}
@@ -96,16 +94,12 @@ const MyOrdersScreen = () => {
           <View style={styles.priceContainer}>
             <Text style={styles.priceSymbol}>₹</Text>
             <Text style={styles.price}>{order.price}</Text>
-          
           </View>
-
         </View>
 
-
-        <Text>
+        <Text style={styles.orderStatus}>
             {order.status}
-          </Text>
-
+        </Text>
 
       </View>
 
@@ -128,7 +122,7 @@ const MyOrdersScreen = () => {
         )
       }
 
-    </Card >
+    </Card>
   );
 
   if (loading) {
@@ -170,50 +164,46 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 16,
-
   },
-
   value: {
     fontSize: 16,
-    fontWeight: '500'
-
+    fontWeight: '500',
+    color: '#000', // Ensuring black text color
   },
-
   eventDate: {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10
   },
-
   bookingNumber: {
-    color: 'gray',
+    color: '#000', // Ensuring black text color
     fontSize: 16,
   },
-
   priceContainer: {
     display: 'flex',
     flexDirection: 'row',
   },
-
   numberPrice: {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
-
   priceSymbol: {
     fontSize: 28,
     fontWeight: '500',
-    color: Colors.PRIMARY
+    color: Colors.PRIMARY,
   },
-
   price: {
     fontSize: 28,
     fontWeight: '500',
-    color: Colors.PRIMARY
+    color: Colors.PRIMARY,
   },
-
+  orderStatus: {
+    fontSize: 16,
+    color: '#000', // Ensuring black text color
+    marginTop: 10,
+  },
   statusContainer: {
     borderTopWidth: 1,
     borderTopColor: '#eee',
@@ -247,7 +237,7 @@ const styles = StyleSheet.create({
   noOrdersText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#666',
+    color: '#000', // Ensuring black text color
     marginTop: 24,
   },
 });
