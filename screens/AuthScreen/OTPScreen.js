@@ -15,17 +15,19 @@ import Colors from '../../utils/Colors';
 import { sendOtp, login, register , sendLoginEmail, sendRegisterEmail } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OTPSkeleton from '../Skeletons/OTPSkeleton';
+import { UserContext } from '../../context/UserContext';
 
 const OTPScreen = ({ route, navigation }) => {
   const [otp, setOtp] = useState(['', '', '', '']);
-  const [loading, setLoading] = useState(true); // Initial loading state
-  const [resendTimer, setResendTimer] = useState(30); // Set initial timer to 30 seconds
-  const [resendDisabled, setResendDisabled] = useState(true); // Initially disabled
+  const [loading, setLoading] = useState(true);
+  const [resendTimer, setResendTimer] = useState(30);
+  const [resendDisabled, setResendDisabled] = useState(true);
   const inputRefs = useRef([]);
   const [selectedInput, setSelectedInput] = useState(null);
   const { email, phoneNumber, loginWithEmail } = route.params;
   const [sentOtp, setSentOtp] = useState(null);
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const { setIsLoggedIn } = useContext(UserContext);
 
 
   // Fetch OTP on mount
@@ -33,7 +35,7 @@ const OTPScreen = ({ route, navigation }) => {
     const fetchOtp = async () => {
       try {
         const response = await sendOtp(email, phoneNumber, loginWithEmail);
-        console.log("Response",response)
+        
         setSentOtp(response.otp);
         // setSentOtp(1234);
 
@@ -97,13 +99,14 @@ const OTPScreen = ({ route, navigation }) => {
   const handleOtpVerification = async () => {
     const enteredOtp = otp.join('');
     setLoading(true);
-  
     try {
       if (route.params.isRegister) {
         // Handle Registration
-        const { name, email, password, phone } = route.params;
-        const response = await register({ name, email, password, phone, role: 'Vendor' });
-  
+        const { name, email, password, phoneNumber } = route.params;
+        console.log("Register PAI",route.params)
+        const response = await register({ name, email, password, phoneNumber, role: 'Vendor' });
+        console.log("Response", route.params)
+        console.log("Response", response)
         if (response.success) {
           console.log('Registration successful:', response.user);
           await AsyncStorage.setItem('user', JSON.stringify(response.user));
@@ -126,6 +129,7 @@ const OTPScreen = ({ route, navigation }) => {
             }
   
             setLoading(false);
+            setIsLoggedIn(true);
             navigation.navigate('HomeTabs');
           } else {
             throw new Error('Failed to store user data.');
@@ -161,7 +165,12 @@ const OTPScreen = ({ route, navigation }) => {
             }
   
             setLoading(false);
-            navigation.navigate('HomeTabs');
+            setIsLoggedIn(true);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'HomeTabs' }],
+            });
+            
           } else {
             throw new Error('Failed to store user data.');
           }

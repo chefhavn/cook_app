@@ -12,7 +12,7 @@ import { Card, Paragraph } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import KYCComponent from '../../component/KYCComponent/KYCComponent';
-import { fetchBookings, approveBooking, rejectBooking, fetchLatestAcceptedOrder } from '../../services/api';
+import { fetchBookings, approveBooking, rejectBooking, fetchLatestAcceptedOrder, getVendorDetails } from '../../services/api';
 import Colors from '../../utils/Colors';
 import RecentOrders from '../../component/Home/RecentOrders';
 
@@ -46,6 +46,10 @@ export default function HomeScreen({ navigation }) {
         console.log(parsedUserData)
         setUserData(parsedUserData);
         setKycStatus(parsedUserData.kyc_status);
+        if(parsedUserData.id && parsedUserData.kyc_status === "Pending"){
+          const vendorDetails = await getVendorDetails(parsedUserData.id);
+          setKycStatus(vendorDetails.kyc_status);
+        }
 
         // Fetch latest accepted order for the chef
         const chefId = parsedUserData.id;

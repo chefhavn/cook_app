@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
 import Colors from '../utils/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
-import { Avatar } from 'react-native-elements';
 
 // Imported Screens
 import EditProfileScreen from './EditProfileScreen/EditProfileScreen';
@@ -24,11 +23,13 @@ import HelpScreen from './HelpScreen/HelpScreen';
 import TermsScreen from './TermsAndConditions/TermsScreen';
 import PrivacyPolicyScreen from './PrivacyPolicy/PrivacyPolicyScreen';
 import { deleteUserAccount } from '../services/api';
+import { UserContext } from '../context/UserContext';
 
 const SettingsScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
+  const { setIsLoggedIn } = useContext(UserContext);
 
   const screens = [
     { name: 'Edit Profile', screen: 'EditProfileScreen', icon: require('../assets/images/edit_profile_icon.png') },
@@ -62,27 +63,24 @@ const SettingsScreen = ({ navigation }) => {
 
   const handleLogout = async () => {
     setModalVisible(false);
+
     try {
       const user = await AsyncStorage.getItem('user');
       if (user) {
         await AsyncStorage.removeItem('user');
-
-        Alert.alert('Logged out', 'You have been logged out.');
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          })
-        );
-      } else {
-        // Alert.alert('No User Found', 'You are not logged in.');
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          })
-        );
       }
+
+      // Update global state in context
+      setIsLoggedIn(false);
+
+      Alert.alert('Logged out', 'You have been logged out.');
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
     } catch (error) {
       console.error('Error logging out:', error);
       Alert.alert('Error', 'An error occurred while logging out.');
@@ -133,42 +131,68 @@ const SettingsScreen = ({ navigation }) => {
           <View style={styles.profileInfo}>
             {/* Custom Avatar */}
             <View style={[styles.avatar, { backgroundColor: 'white' }]}>
-            {userData?.avatar ? (
-          <Image
-            source={{ uri: userData.avatar }} // Display the image if avatar is available
-            style={styles.avatarImage}
-          />
-        ) : (
-          <Text style={[styles.avatarText, { color: Colors.PRIMARY }]}>
-            {firstLetter} {/* Display the first letter if no avatar */}
-          </Text>
-        )}
+              {userData?.avatar ? (
+                <Image
+                  source={{ uri: userData.avatar }} // Display the image if avatar is available
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={[styles.avatarText, { color: Colors.PRIMARY }]}>
+                  {firstLetter} {/* Display the first letter if no avatar */}
+                </Text>
+              )}
             </View>
             <View style={styles.profileText}>
               <Text style={styles.profileName}>
                 {userData ? userData.name : 'John Doe'}
               </Text>
-              <Text style={styles.profileRating}>⭐ {userData?.rating || '4.8'}</Text>
+              {/* <Text style={styles.profileRating}>⭐ {userData?.rating || '4.8'}</Text> */}
+              <Text style={styles.profileName}>
+                {userData ? userData.phone : ''}
+              </Text>
             </View>
           </View>
-          <View style={styles.earningsCard}>
-            <Text style={styles.earningsTitle}>Earned Today</Text>
-            <Text style={styles.earningsValue}>₹{userData?.earnings || '259.90'}</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userData?.totalTrips || 15}</Text>
-                <Text style={styles.statLabel}>Total Trips</Text>
+          
+            {/* Earned Today Title */}
+            {userData?.earnings || userData?.totalTrips || userData?.totalDistance && (
+              <View style={styles.earningsCard}>
+                <Text style={styles.earningsTitle}>Earned Today</Text>
+                <Text style={styles.earningsValue}>
+                  ₹{userData?.earnings || 'N/A'}
+                </Text>
+                <View style={styles.statsRow}>
+                  {/* Total Trips */}
+                  {userData?.totalTrips !== undefined && (
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{userData?.totalTrips || 'N/A'}</Text>
+                      <Text style={styles.statLabel}>Total Trips</Text>
+                    </View>
+                  )}
+
+                  {/* Time Online */}
+                  {userData?.timeOnline !== undefined && (
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>
+                        {userData?.timeOnline || 'N/A'}
+                      </Text>
+                      <Text style={styles.statLabel}>Time Online</Text>
+                    </View>
+                  )}
+
+                  {/* Total Distance */}
+                  {userData?.totalDistance !== undefined && (
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>
+                        {userData?.totalDistance || 'N/A'}
+                      </Text>
+                      <Text style={styles.statLabel}>Total Distance</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userData?.timeOnline || '15h 30m'}</Text>
-                <Text style={styles.statLabel}>Time Online</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userData?.totalDistance || '45 km'}</Text>
-                <Text style={styles.statLabel}>Total Distance</Text>
-              </View>
-            </View>
-          </View>
+            )}
+          
+
         </View>
 
         {screens.map((item, index) => (

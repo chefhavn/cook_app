@@ -13,13 +13,25 @@ export const login = async phoneNumber => {
 };
 
 // API method for registering
-export const register = async ({name, email, password, phone, role}) => {
-  const payload = {name, email, password, phone, role};
+export const register = async ({name, email, password, phoneNumber, role}) => {
+  const payload = {name, email, password, phone: phoneNumber, role};
   try {
     const response = await axiosInstance.post('/api/auth/auth', payload);
     return response;
   } catch (error) {
     console.error('Error during registration:', error);
+    throw error;
+  }
+};
+
+export const getVendorDetails = async (userId) => {
+  try {
+    const response = await axiosInstance.get('/api/auth/get-vendor-details', {
+      params: { userId }
+    });
+    return response.user;
+  } catch (error) {
+    console.error('Error fetching vendor details:', error);
     throw error;
   }
 };

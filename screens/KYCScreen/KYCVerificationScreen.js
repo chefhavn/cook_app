@@ -143,7 +143,7 @@ export default function KYCVerificationScreen({ navigation }) {
       } catch (mailError) {
         console.error('Error sending acknowledgment email:', mailError);
       }
-      if (response.status === 201) {
+      if (response.success === true) {
         Alert.alert('KYC Data Submitted Successfully!');
         setFrontUri(null);
         setBackUri(null);

@@ -6,8 +6,8 @@ const DEVELOPMENT_URL = 'http://192.168.1.46:3000';
 const PRODUCTION_URL = 'https://www.chefhavn.com';
 
 // Define your base URL based on environment
-// const isDevelopment = __DEV__;
-const isDevelopment = '';
+const isDevelopment = __DEV__;
+// const isDevelopment = '';
 const BASE_URL = isDevelopment ? DEVELOPMENT_URL : PRODUCTION_URL;
 // const BASE_URL = 'https://www.chefhavn.com';
 

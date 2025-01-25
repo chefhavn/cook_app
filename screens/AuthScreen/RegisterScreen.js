@@ -82,7 +82,7 @@ const RegisterScreen = ({ navigation }) => {
   
     setIsLoading(true);
     try {
-      navigation.navigate('OTP', { name, email, password, phone, isRegister: true });
+      navigation.navigate('OTP', { name, email, password, phoneNumber: phone, isRegister: true, loginWithEmail: true });
       setIsLoading(false);
     } catch (error) {
       console.error('Navigation to OTP failed:', error);
@@ -93,9 +93,7 @@ const RegisterScreen = ({ navigation }) => {
   
   
   const handleNameChange = (text) => {
-    if (text.length <= 10) {
-      setName(text);
-    }
+    setName(text);
   };
 
   return (

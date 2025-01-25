@@ -39,7 +39,7 @@ const LoginScreen = ({ navigation }) => {
       throw new Error('Failed to store user data.');
     }
 
-    navigation.navigate('OTP', { email: '', phoneNumber: phone, loginWith2Email: false });
+    navigation.navigate('OTP', { email: '', phoneNumber: phone, loginWithEmail: false });
   };
 
   // Function to handle checkbox toggle
