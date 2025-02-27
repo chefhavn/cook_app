@@ -54,7 +54,7 @@ export default function OrderDetails({ route, navigation }) {
   };
 
   const handleOtpVerification = async () => {
-    if (otp === '1234') {
+    if (otp === order?.otp) {
       Alert.alert('Success', 'OTP Verified. You can now start cooking.');
       setIsOtpVerified(true);
     } else {

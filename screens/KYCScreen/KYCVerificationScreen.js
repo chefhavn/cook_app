@@ -6,9 +6,8 @@ import {
   ScrollView,
   Image,
   Alert,
-  Button,
+  ActivityIndicator,
   Switch,
-  Modal,
   TouchableOpacity,
   Text,
 } from 'react-native';
@@ -17,7 +16,6 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkKYCStatus, submitKYC, sentKycSubmitMail } from '../../services/api';
 import Colors from '../../utils/Colors';
-// import Colors from '../../constants/Colors'; // Assuming you have a Colors constant
 
 export default function KYCVerificationScreen({ navigation }) {
   const [fullName, setFullName] = useState('');
@@ -29,8 +27,9 @@ export default function KYCVerificationScreen({ navigation }) {
   const [experienceDetails, setExperienceDetails] = useState('');
   const [isKYCVerified, setIsKYCVerified] = useState(null);
   const [kycMessage, setKYCMessage] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idError, setIdError] = useState('');
 
   const handleFilePick = async () => {
     try {
@@ -77,6 +76,57 @@ export default function KYCVerificationScreen({ navigation }) {
     checkKYCStatusAsync();
   }, []);
 
+  // Handle ID number validation
+  const validateIdNumber = (text) => {
+    if (govtIdType === 'Aadhar Card') {
+      // Remove any existing dashes for validation
+      const cleanText = text.replace(/-/g, '');
+      
+      // Only allow digits
+      if (!/^\d*$/.test(cleanText)) {
+        setIdError('Aadhar should contain only digits');
+        return;
+      }
+      
+      // Format with dashes (XXXX-XXXX-XXXX)
+      if (cleanText.length <= 12) {
+        let formattedText = cleanText;
+        if (cleanText.length > 4) {
+          formattedText = cleanText.slice(0, 4) + '-' + cleanText.slice(4);
+        }
+        if (cleanText.length > 8) {
+          formattedText = formattedText.slice(0, 9) + '-' + formattedText.slice(9);
+        }
+        setGovtIdNumber(formattedText);
+        
+        // Validate length
+        if (cleanText.length === 12) {
+          setIdError('');
+        } else {
+          setIdError('Aadhar should be 12 digits');
+        }
+      }
+    } else if (govtIdType === 'PAN Card') {
+      // PAN format: 5 letters, 4 numbers, 1 letter
+      const panRegex = /^[A-Z0-9]{0,10}$/i;
+      if (panRegex.test(text)) {
+        setGovtIdNumber(text.toUpperCase());
+        
+        // Validate PAN format
+        const fullPanRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+        if (text.length === 10) {
+          if (fullPanRegex.test(text.toUpperCase())) {
+            setIdError('');
+          } else {
+            setIdError('Invalid PAN format (should be AAAAA0000A)');
+          }
+        } else {
+          setIdError('PAN should be 10 characters');
+        }
+      }
+    }
+  };
+
   // Handle image selection
   const handleImageSelection = (side, method) => {
     const options = { mediaType: 'photo', quality: 1 };
@@ -96,10 +146,37 @@ export default function KYCVerificationScreen({ navigation }) {
 
   const handleSubmit = async () => {
     try {
-      if (!frontUri && govtIdType === 'Aadhar Card') {
-        Alert.alert('Front ID picture is required');
+      // Validation checks
+      if (!fullName.trim()) {
+        Alert.alert('Error', 'Please enter your full name');
         return;
       }
+      
+      if (govtIdType === 'Aadhar Card') {
+        const cleanAadhar = govtIdNumber.replace(/-/g, '');
+        if (cleanAadhar.length !== 12 || !/^\d+$/.test(cleanAadhar)) {
+          Alert.alert('Error', 'Please enter a valid 12-digit Aadhar number');
+          return;
+        }
+        
+        if (!frontUri || !backUri) {
+          Alert.alert('Error', 'Both front and back images of Aadhar Card are required');
+          return;
+        }
+      } else if (govtIdType === 'PAN Card') {
+        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+        if (!panRegex.test(govtIdNumber)) {
+          Alert.alert('Error', 'Please enter a valid PAN number (format: AAAAA0000A)');
+          return;
+        }
+        
+        if (!frontUri) {
+          Alert.alert('Error', 'Front image of PAN Card is required');
+          return;
+        }
+      }
+      
+      setIsSubmitting(true);
   
       const formData = new FormData();
       const user = await AsyncStorage.getItem('user');
@@ -116,7 +193,7 @@ export default function KYCVerificationScreen({ navigation }) {
         name: `${govtIdType}_front.jpg`,
       });
   
-      if (govtIdType === 'Aadhar Card') {
+      if (govtIdType === 'Aadhar Card' && backUri) {
         formData.append('govt_id_back_pic', {
           uri: backUri,
           type: 'image/jpeg',
@@ -136,28 +213,44 @@ export default function KYCVerificationScreen({ navigation }) {
         const mailResponse = await sentKycSubmitMail(email, name);
         console.log("Mail Response", mailResponse);
         if (mailResponse.success) {
-          Alert.alert('Acknowledgment email sent successfully!');
+          Alert.alert('Success', 'KYC submitted and acknowledgment email sent successfully!');
         } else {
           console.error('Failed to send acknowledgment email:', mailResponse.error);
+          Alert.alert('Partial Success', 'KYC submitted but failed to send acknowledgment email');
         }
       } catch (mailError) {
         console.error('Error sending acknowledgment email:', mailError);
+        Alert.alert('Partial Success', 'KYC submitted but failed to send acknowledgment email');
       }
+      
       if (response.success === true) {
-        Alert.alert('KYC Data Submitted Successfully!');
         setFrontUri(null);
         setBackUri(null);
         setIsKYCVerified(true);
         setKYCMessage('Your profile is under verification.');
+        navigation.navigate("HomeTabs")
       } else {
-        Alert.alert('KYC Data Submission Failed!');
+        Alert.alert('Error', 'KYC Data Submission Failed!');
       }
     } catch (error) {
       console.error('KYC submission error:', error);
-      Alert.alert('KYC Data Submission Failed!');
+      Alert.alert('Error', 'KYC Data Submission Failed!');
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
+  // Toggle between Aadhar and PAN
+  const toggleIdType = () => {
+    const newType = govtIdType === 'Aadhar Card' ? 'PAN Card' : 'Aadhar Card';
+    setGovtIdType(newType);
+    setGovtIdNumber('');
+    setIdError('');
+    // Clear back image if switching to PAN Card
+    if (newType === 'PAN Card') {
+      setBackUri(null);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -188,11 +281,13 @@ export default function KYCVerificationScreen({ navigation }) {
                   value={fullName}
                   onChangeText={setFullName}
                 />
-                {/* Dropdown for ID Type */}
+                
+                {/* Toggle between Aadhar and PAN */}
                 <TouchableOpacity
-                  onPress={() => setModalVisible(true)}
-                  style={styles.input}>
-                  <Text style={styles.inputText}>{govtIdType}</Text>
+                  onPress={toggleIdType}
+                  style={styles.idTypeSelector}>
+                  <Text style={styles.idTypeText}>ID Type: {govtIdType}</Text>
+                  <Text style={styles.idTypeSwitchText}>(Tap to change)</Text>
                 </TouchableOpacity>
 
                 <TextInput
@@ -200,8 +295,11 @@ export default function KYCVerificationScreen({ navigation }) {
                   placeholder={`${govtIdType} Number`}
                   placeholderTextColor="#888"
                   value={govtIdNumber}
-                  onChangeText={setGovtIdNumber}
+                  onChangeText={validateIdNumber}
+                  maxLength={govtIdType === 'Aadhar Card' ? 14 : 10}
                 />
+                
+                {idError ? <Text style={styles.errorText}>{idError}</Text> : null}
 
                 <View style={styles.imageContainer}>
                   <Text style={styles.labelText}>{`Upload Front of ${govtIdType}`}</Text>
@@ -292,45 +390,27 @@ export default function KYCVerificationScreen({ navigation }) {
                 </>
                 )}
                 <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: Colors.PRIMARY }]}
+                  style={[
+                    styles.submitButton, 
+                    { backgroundColor: Colors.PRIMARY },
+                    isSubmitting && styles.disabledButton
+                  ]}
                   onPress={handleSubmit}
+                  disabled={isSubmitting}
                 >
-                  <Text style={styles.submitButtonText}>Submit KYC</Text>
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Submit KYC</Text>
+                  )}
                 </TouchableOpacity>
               </>
             )}
           </Card.Content>
         </Card>
       </ScrollView>
-
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select ID Type</Text>
-            {['Aadhar Card', 'Voter Card', 'Driving License'].map(item => (
-              <TouchableOpacity
-                key={item}
-                onPress={() => {
-                  setGovtIdType(item);
-                  setModalVisible(false);
-                }}
-                style={styles.modalOption}>
-                <Text style={styles.modalOptionText}>{item}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: Colors.PRIMARY }]}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      
+      {/* Styling */}
     </View>
   );
 }
@@ -372,7 +452,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: '#ddd',
     backgroundColor: '#fff',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    color: "#111"
   },
   inputText: {
     color: '#333',
@@ -469,7 +550,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 15,
-    textAlign: 'center'
+    textAlign: 'center',
+    color: "#111"
   },
   modalOption: {
     padding: 15,
@@ -478,7 +560,8 @@ const styles = StyleSheet.create({
   },
   modalOptionText: {
     fontSize: 16,
-    textAlign: 'center'
+    textAlign: 'center',
+    color: "#111"
   },
   closeButton: {
     marginTop: 15,
@@ -500,5 +583,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     padding: 15
-  }
+  },
+
+  idTypeSelector: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  idTypeText: {
+    fontSize: 16,
+    color: "black"
+  },
+  idTypeSwitchText: {
+    fontSize: 12,
+    color: Colors.PRIMARY,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 8,
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
 });

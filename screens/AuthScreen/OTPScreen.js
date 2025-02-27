@@ -8,7 +8,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
-  SafeAreaView
+  SafeAreaView,
+  Alert
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Colors from '../../utils/Colors';
@@ -102,9 +103,9 @@ const OTPScreen = ({ route, navigation }) => {
     try {
       if (route.params.isRegister) {
         // Handle Registration
-        const { name, email, password, phoneNumber } = route.params;
+        const { name, email, phoneNumber } = route.params;
         console.log("Register PAI",route.params)
-        const response = await register({ name, email, password, phoneNumber, role: 'Vendor' });
+        const response = await register({ name, email, phoneNumber, role: 'Vendor' });
         console.log("Response", route.params)
         console.log("Response", response)
         if (response.success) {

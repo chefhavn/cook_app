@@ -17,5 +17,6 @@ export default {
   ACTIVE: '#ffffff',
   INACTIVE: '#bdc3c7',
   HEADING: '#111',
-  SECONDARY: '#BFACE0'
+  SECONDARY: '#BFACE0',
+  TEXT: 'black'
 };

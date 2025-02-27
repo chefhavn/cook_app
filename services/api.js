@@ -13,8 +13,8 @@ export const login = async phoneNumber => {
 };
 
 // API method for registering
-export const register = async ({name, email, password, phoneNumber, role}) => {
-  const payload = {name, email, password, phone: phoneNumber, role};
+export const register = async ({name, email, phoneNumber, role}) => {
+  const payload = {name, email, phone: phoneNumber, role};
   try {
     const response = await axiosInstance.post('/api/auth/auth', payload);
     return response;
@@ -167,8 +167,8 @@ export const sentKycSubmitMail = async (email, name) => {
     // Make the API request
     const response = await axiosInstance.post('/api/submit-kyc', { email, name });
     // Log and return the response
-    console.log('KYC submitted successfully:', response.data);
-    return response.data;
+    console.log('KYC submitted successfully:', response);
+    return response;
   } catch (error) {
     // Log and throw the error
     console.error('Error submitting KYC:', error);

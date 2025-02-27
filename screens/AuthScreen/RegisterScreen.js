@@ -1,88 +1,142 @@
-import React, { useState } from 'react';
-import { View, Text, Alert, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  Alert,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Linking,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  Animated,
+  Image,
+} from 'react-native';
 import CustomInput from '../../component/CustomInput/CustomInput';
 import CustomButton from '../../component/CustomButton/CustomButton';
-import { register } from '../../services/api'; // Import register API method
 import Colors from '../../utils/Colors';
+import Icon from 'react-native-vector-icons/MaterialIcons'; // Make sure to install this package
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = ({navigation}) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const translationY = new Animated.Value(0);
+
+  // Validation states
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [termsError, setTermsError] = useState('');
+
+  // Keyboard listeners for animation
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+        Animated.timing(translationY, {
+          toValue: -80,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      },
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+        Animated.timing(translationY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      },
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   // Function to handle checkbox toggle
   const handleCheckboxPress = () => {
     setIsChecked(!isChecked);
+    if (!isChecked) setTermsError('');
   };
 
-  const validateEmail = (email) => {
+  const validateName = name => {
+    if (!name.trim()) {
+      setNameError('Name is required');
+      return false;
+    }
+    setNameError('');
+    return true;
+  };
+
+  const validateEmail = email => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email); // Returns true if email is valid, false otherwise
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
   };
 
-  // const handleRegister = async () => {
-  //   if(!name){
-  //     Alert.alert('Name Required', 'Please Enter Name');
-  //     return;
-  //   }
+  const validatePhone = phone => {
+    const phoneRegex = /^\d{10}$/;
+    if (!phone.trim()) {
+      setPhoneError('Phone number is required');
+      return false;
+    }
+    if (!phoneRegex.test(phone)) {
+      setPhoneError('Phone number must be 10 digits');
+      return false;
+    }
+    setPhoneError('');
+    return true;
+  };
 
-  //   if(!email){
-  //     Alert.alert('Email Required', 'Please Enter Email');
-  //     return;
-  //   }
-
-  //   if(!password){
-  //     Alert.alert('Password Required', 'Please Enter Password');
-  //     return;
-  //   }
-
-  //   if(!phone){
-  //     Alert.alert('Number Required', 'Please Enter Number');
-  //     return;
-  //   }
-
-  //   if(!validateEmail(email)){
-  //     Alert.alert('Email', 'Please Enter Correct Email');
-  //     return;
-  //   }
-
-  //   if(phone.trim().length != 10){
-  //     Alert.alert('Number', 'Please Enter Correct Number');
-  //     return;
-  //   }
-
-  //   if(!isChecked){
-  //     Alert.alert('Terms & Condition', "You have not agreed terms & condition");
-  //     return;
-  //   }
-
-
-  //   setIsLoading(true);
-  //   try {
-  //     const response = await register({ name, email, password, phone, role: 'Vendor' });
-  //     console.log('Registration successful:', response);
-  //     Alert.alert('Success', 'Registration successful');
-  //     setIsLoading(false);
-  //     navigation.navigate('Login');
-  //   } catch (error) {
-  //     console.error('Registration error:', error);
-  //     Alert.alert('Error', error.message || 'Registration failed');
-  //     setIsLoading(false);
-  //   }
-  // };
+  const validateTerms = () => {
+    if (!isChecked) {
+      setTermsError('You must accept the Terms and Privacy Policy');
+      return false;
+    }
+    setTermsError('');
+    return true;
+  };
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !phone || phone.trim().length !== 10 || !isChecked) {
-      Alert.alert('Validation Error', 'Please fill out all fields correctly.');
+    // Validate all fields
+    const isNameValid = validateName(name);
+    const isEmailValid = validateEmail(email);
+    const isPhoneValid = validatePhone(phone);
+    const isTermsValid = validateTerms();
+
+    if (!isNameValid || !isEmailValid || !isPhoneValid || !isTermsValid) {
       return;
     }
-  
+
     setIsLoading(true);
     try {
-      navigation.navigate('OTP', { name, email, password, phoneNumber: phone, isRegister: true, loginWithEmail: true });
+      navigation.navigate('OTP', {
+        name,
+        email,
+        phoneNumber: phone,
+        isRegister: true,
+        loginWithEmail: true,
+      });
       setIsLoading(false);
     } catch (error) {
       console.error('Navigation to OTP failed:', error);
@@ -90,82 +144,175 @@ const RegisterScreen = ({ navigation }) => {
       setIsLoading(false);
     }
   };
-  
-  
-  const handleNameChange = (text) => {
+
+  const handleNameChange = text => {
     setName(text);
+    validateName(text);
+  };
+
+  const handleEmailChange = text => {
+    setEmail(text);
+    validateEmail(text);
+  };
+
+  const handlePhoneChange = text => {
+    // Only allow digits
+    const formattedText = text.replace(/[^0-9]/g, '');
+    setPhone(formattedText);
+    validatePhone(formattedText);
+  };
+
+  const openURL = url => {
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        console.log("Don't know how to open URI: " + url);
+        Alert.alert('Error', 'Cannot open the URL');
+      }
+    });
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Create Account</Text>
-      <Text style={styles.subHeader}>Register to get started</Text>
-      <CustomInput
-        placeholder="Name"
-        value={name}
-        onChangeText={handleNameChange}
-      />
-      <CustomInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-      <CustomInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <CustomInput
-        placeholder="Phone Number"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
-      <View style={styles.checkboxContainer}>
-        <TouchableOpacity
-          onPress={handleCheckboxPress}
-          style={styles.checkbox}
-        >
-          {isChecked && (
-            <Image
-              source={require('../../assets/images/checkbox.png')}  // Ensure the image path is correct
-              style={styles.checkmarkImage}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardAvoidContainer}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled">
+        <Animated.View
+          style={[styles.container, {transform: [{translateY: translationY}]}]}>
+          <View style={styles.formContainer}>
+            <Text style={styles.header}>Create Account</Text>
+            <Text style={styles.subHeader}>Register to get started</Text>
+
+            <View style={styles.inputContainer}>
+              <CustomInput
+                placeholder="Name"
+                value={name}
+                onChangeText={handleNameChange}
+              />
+              {nameError ? (
+                <Text style={styles.errorText}>{nameError}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <CustomInput
+                placeholder="Email"
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+              />
+              {emailError ? (
+                <Text style={styles.errorText}>{emailError}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.inputContainer}>
+              <View style={styles.phoneContainer}>
+                <View style={styles.countryCode}>
+                  <Text style={styles.countryCodeText}>+91</Text>
+                </View>
+                <View style={styles.phoneInputWrapper}>
+                  <CustomInput
+                    placeholder="Phone Number"
+                    value={phone}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    style={styles.phoneInput}
+                    maxLength={10}
+                  />
+                </View>
+              </View>
+              {phoneError ? (
+                <Text style={styles.errorText}>{phoneError}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.checkboxContainer}>
+              <TouchableOpacity
+                onPress={handleCheckboxPress}
+                style={[styles.checkbox, isChecked && styles.checkedCheckbox]}>
+                {isChecked && (
+                  <Image
+                    source={require('../../assets/images/check_white.png')}
+                    style={styles.checkmarkImage}
+                  />
+                )}
+              </TouchableOpacity>
+              <Text style={styles.termsText}>
+                I've read and agree with the{' '}
+                <Text
+                  style={styles.linkText}
+                  onPress={() =>
+                    openURL('https://chefhavn.com/terms-condition')
+                  }>
+                  Terms and Conditions
+                </Text>{' '}
+                and the{' '}
+                <Text
+                  style={styles.linkText}
+                  onPress={() =>
+                    openURL('https://chefhavn.com/privacy-policy')
+                  }>
+                  Privacy Policy
+                </Text>
+                .
+              </Text>
+            </View>
+            {termsError ? (
+              <Text style={styles.errorText}>{termsError}</Text>
+            ) : null}
+
+            <CustomButton
+              title="Register"
+              onPress={handleRegister}
+              isLoading={isLoading}
             />
-          )}
-        </TouchableOpacity>
-        <Text style={styles.termsText}>
-          I've read and agree with the{' '}
-          <Text style={styles.linkText}>Terms and Conditions</Text> and the{' '}
-          <Text style={styles.linkText}>Privacy Policy</Text>.
-        </Text>
-      </View>
-      <CustomButton title="Register" onPress={handleRegister} isLoading={isLoading} />
-      <Text style={styles.loginText}>
-        Already have an account?{' '}
-        <Text style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
-          Login Here
-        </Text>
-      </Text>
-    </View>
+
+            <Text style={styles.loginText}>
+              Already have an account?{' '}
+              <Text
+                style={styles.loginLink}
+                onPress={() => navigation.navigate('Login')}>
+                Login Here
+              </Text>
+            </Text>
+          </View>
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardAvoidContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContainer: {
     flexGrow: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 24,
     backgroundColor: '#FFFFFF',
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingVertical: 30,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
   },
   header: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000000',
     textAlign: 'left',
-    marginTop: 50,
     marginBottom: 10,
   },
   subHeader: {
@@ -174,52 +321,91 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: 'left',
   },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
+  },
+  countryCode: {
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRightWidth: 0,
+  },
+  countryCodeText: {
+    fontSize: 16,
+    color: '#333333',
+  },
+  phoneInputWrapper: {
+    flex: 1,
+    // height: 50,
+  },
+  phoneInput: {
+    height: '100%',
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
   checkboxContainer: {
     flexDirection: 'row',
-    alignItems: 'center', // Align vertically as well
-    marginTop: 10,
-    marginBottom: 4,
+    alignItems: 'flex-start',
+    marginVertical: 15,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 2,
+    backgroundColor: '#FFFFFF',
   },
-  checkmarkImage: {
-    width: '100%',  // Adjust size to fit the box
-    height: '100%', // Adjust size to fit the box
+  checkedCheckbox: {
+    backgroundColor: Colors.PRIMARY,
+    borderColor: Colors.PRIMARY,
   },
   termsText: {
     fontSize: 14,
-    color: '#555555',
+    color: '#333333',
     lineHeight: 20,
     flexShrink: 1,
+    flex: 1,
   },
   linkText: {
     color: Colors.PRIMARY,
     fontWeight: 'bold',
-    textDecorationLine: 'underline', // Underline the link text
+    textDecorationLine: 'underline',
   },
-  button: {
-    marginTop: 20,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: '#007BFF',
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: 3,
+    marginLeft: 5,
   },
   loginText: {
-    marginTop: 10,
+    marginTop: 15,
     fontSize: 14,
     textAlign: 'center',
-    color: '#666666',
+    color: '#333333',
   },
   loginLink: {
     color: Colors.PRIMARY,
     fontWeight: 'bold',
+  },
+  checkmarkImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 

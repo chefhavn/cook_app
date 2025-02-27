@@ -82,8 +82,8 @@ android {
         applicationId "com.chefhavnvendor"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 6
+        versionName "1.6"
     }
     signingConfigs {
         release {
@@ -105,7 +105,15 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    
 }
+
+project.ext.vectoricons = [
+    iconFontNames: [ 'MaterialIcons.ttf' ] // Add other icon fonts if needed
+]
+
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin

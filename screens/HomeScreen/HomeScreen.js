@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,23 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { Card, Paragraph } from 'react-native-paper';
+import {Card, Paragraph} from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import KYCComponent from '../../component/KYCComponent/KYCComponent';
-import { fetchBookings, approveBooking, rejectBooking, fetchLatestAcceptedOrder, getVendorDetails } from '../../services/api';
+import {
+  fetchBookings,
+  approveBooking,
+  rejectBooking,
+  fetchLatestAcceptedOrder,
+  getVendorDetails,
+} from '../../services/api';
 import Colors from '../../utils/Colors';
 import RecentOrders from '../../component/Home/RecentOrders';
+import KycSubmit from '../../component/KYCComponent/KycSubmit';
+import KycReject from '../../component/KYCComponent/KycReject';
 
-export default function HomeScreen({ navigation }) {
-
-  
+export default function HomeScreen({navigation}) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
@@ -43,10 +49,10 @@ export default function HomeScreen({ navigation }) {
       const storedUserData = await AsyncStorage.getItem('user');
       if (storedUserData) {
         const parsedUserData = JSON.parse(storedUserData);
-        console.log(parsedUserData)
+        console.log(parsedUserData);
         setUserData(parsedUserData);
         setKycStatus(parsedUserData.kyc_status);
-        if(parsedUserData.id && parsedUserData.kyc_status === "Pending"){
+        if (parsedUserData.id && parsedUserData.kyc_status === 'Pending') {
           const vendorDetails = await getVendorDetails(parsedUserData.id);
           setKycStatus(vendorDetails.kyc_status);
         }
@@ -54,7 +60,7 @@ export default function HomeScreen({ navigation }) {
         // Fetch latest accepted order for the chef
         const chefId = parsedUserData.id;
         const orderData = await fetchLatestAcceptedOrder(chefId);
-        console.log("Order latest", orderData)
+        console.log('Order latest', orderData);
         if (orderData.success && orderData.order) {
           setLatestOrder(orderData.order);
         } else {
@@ -66,9 +72,10 @@ export default function HomeScreen({ navigation }) {
       // Fetch bookings
       const data = await fetchBookings();
       if (data.success) {
-        const rejectedIds = JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
+        const rejectedIds =
+          JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
         const filteredBookings = data.bookings.filter(
-          (booking) => !rejectedIds.includes(booking._id)
+          booking => !rejectedIds.includes(booking._id),
         );
         setBookings(filteredBookings);
       } else {
@@ -81,15 +88,13 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [])
+    }, []),
   );
-  
 
-  const handleAccept = async (id) => {
+  const handleAccept = async id => {
     try {
       const result = await approveBooking(userData.id, id);
       if (result.success) {
@@ -104,14 +109,18 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async id => {
     try {
       const result = await rejectBooking(id);
       if (result) {
-        const rejectedIds = JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
+        const rejectedIds =
+          JSON.parse(await AsyncStorage.getItem('rejectedBookings')) || [];
         rejectedIds.push(id);
-        await AsyncStorage.setItem('rejectedBookings', JSON.stringify(rejectedIds));
-        setBookings((prev) => prev.filter((booking) => booking._id !== id));
+        await AsyncStorage.setItem(
+          'rejectedBookings',
+          JSON.stringify(rejectedIds),
+        );
+        setBookings(prev => prev.filter(booking => booking._id !== id));
         Alert.alert('Booking Rejected', `Rejected booking ID: ${id}`);
       } else {
         Alert.alert('Error', result.message || 'Failed to reject booking.');
@@ -130,42 +139,78 @@ export default function HomeScreen({ navigation }) {
     );
   }
 
+  // const isCloseToBottom = ({ layoutMeasurement, contentOffset, contentSize }) => {
+  //   return layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
+  // };
+  
+  
+
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-
-      {kycStatus !== 'Pending' &&
-        <RecentOrders navigation={navigation} latestOrder={latestOrder} />
-      }
-
-
-        {kycStatus === 'Pending' ? (
-          <KYCComponent navigation={navigation} />
-        ) : bookings.length > 0 ? (
-          bookings.map((booking) => (
-            <Card key={booking._id} style={styles.card}>
-              <Card.Title title={`Booking No: ${booking.booking_number}`} titleStyle={styles.title} />
-              <Card.Content>
-                <Paragraph style={styles.boldText}>Event Type:</Paragraph>
-                <Paragraph>{booking.event_type}</Paragraph>
-                <Paragraph style={styles.boldText}>Date:</Paragraph>
-                <Paragraph>{new Date(booking.date).toLocaleDateString()}</Paragraph>
-                <Paragraph style={styles.boldText}>Price:</Paragraph>
-                <Paragraph>₹{booking.price}</Paragraph>
-              </Card.Content>
-              <Card.Actions style={styles.actions}>
-                <TouchableOpacity onPress={() => handleAccept(booking._id)} style={styles.acceptButton}>
-                  <Text style={styles.acceptButtonText}>Accept</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleReject(booking._id)} style={styles.rejectButton}>
-                  <Text style={styles.rejectButtonText}>Reject</Text>
-                </TouchableOpacity>
-              </Card.Actions>
-            </Card>
-          ))
-        ) : (
-          <Text style={styles.noBookingsText}>No bookings available.</Text>
+      <ScrollView contentContainerStyle={styles.content} onScroll={({nativeEvent}) => {
+    // if (isCloseToBottom(nativeEvent)) {
+    //   fetchData(); // Refresh the data
+    // }
+  }}>
+        {kycStatus !== 'Pending' && kycStatus !== 'Submitted' && kycStatus !== 'Rejected' && (
+          <View>
+            <RecentOrders navigation={navigation} latestOrder={latestOrder} />
+            <View>
+              {bookings.length > 0 ? (
+                <>
+                  {bookings.length > 0 ? (
+                    bookings.map(booking => (
+                      <Card key={booking._id} style={styles.card}>
+                        <Card.Title
+                          title={`Booking No: ${booking.booking_number}`}
+                          titleStyle={styles.title}
+                        />
+                        <Card.Content>
+                          <Paragraph style={styles.boldText}>
+                            Event Type:
+                          </Paragraph>
+                          <Paragraph>{booking.event_type}</Paragraph>
+                          <Paragraph style={styles.boldText}>Date:</Paragraph>
+                          <Paragraph>
+                            {new Date(booking.date).toLocaleDateString()}
+                          </Paragraph>
+                          <Paragraph style={styles.boldText}>Price:</Paragraph>
+                          <Paragraph>₹{booking.price}</Paragraph>
+                        </Card.Content>
+                        <Card.Actions style={styles.actions}>
+                          <TouchableOpacity
+                            onPress={() => handleAccept(booking._id)}
+                            style={styles.acceptButton}>
+                            <Text style={styles.acceptButtonText}>Accept</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleReject(booking._id)}
+                            style={styles.rejectButton}>
+                            <Text style={styles.rejectButtonText}>Reject</Text>
+                          </TouchableOpacity>
+                        </Card.Actions>
+                      </Card>
+                    ))
+                  ) : (
+                    <Text style={styles.noBookingsText}>
+                      No bookings available.
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.noBookingsText}>
+                  No bookings available.
+                </Text>
+              )}
+            </View>
+          </View>
         )}
+
+        {kycStatus === 'Pending' && <KYCComponent navigation={navigation} />}
+
+        {kycStatus === 'Submitted' && <KycSubmit navigation={navigation} />}
+
+        {kycStatus === 'Rejected' && <KycReject navigation={navigation} />}
       </ScrollView>
     </View>
   );
@@ -191,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },

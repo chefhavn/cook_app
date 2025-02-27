@@ -112,7 +112,7 @@ const MainStack = () => (
     <Stack.Screen
       name="KYCVerification"
       component={KYCVerificationScreen}
-      options={{ title: 'Verify KYC' }}
+      options={{ title: '' }}
     />
     <Stack.Screen name="PendingAmount" component={PendingAmount} />
     <Stack.Screen

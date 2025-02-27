@@ -78,11 +78,11 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.checkboxContainer}>
             <TouchableOpacity
               onPress={handleCheckboxPress}
-              style={styles.checkbox}
+              style={[styles.checkbox, isChecked && styles.checkedCheckbox]}
             >
               {isChecked && (
                 <Image
-                  source={require('../../assets/images/checkbox.png')}  // Ensure the image path is correct
+                  source={require('../../assets/images/check_white.png')}
                   style={styles.checkmarkImage}
                 />
               )}
@@ -151,14 +151,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  checkedCheckbox: {
+    backgroundColor: Colors.PRIMARY,
+    borderColor: Colors.PRIMARY,
   },
   checkmarkImage: {
     width: '100%',  // Adjust size to fit the box
